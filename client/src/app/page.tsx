@@ -197,7 +197,7 @@ Requirements:
       </section>
 
       {/* Main Generator Card */}
-      <section className="max-w-4xl mx-auto glass-panel p-6 sm:p-8 rounded-2xl shadow-2xl relative overflow-hidden">
+      <section id="create-kit-form" className="max-w-4xl mx-auto glass-panel p-6 sm:p-8 rounded-2xl shadow-2xl relative overflow-hidden scroll-mt-24">
         <form onSubmit={handleGenerate} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="sm:col-span-2 space-y-2">
@@ -332,7 +332,7 @@ Requirements:
       </section>
 
       {/* Saved Kits Section */}
-      <section className="space-y-6">
+      <section id="my-kits-section" className="space-y-6 scroll-mt-24">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight">Your Saved Preparation Kits</h2>
