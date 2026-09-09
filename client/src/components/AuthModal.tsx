@@ -18,6 +18,23 @@ export default function AuthModal() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Strict Password Validation for Registration
+    if (authMode === 'register') {
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters long.');
+        return;
+      }
+      if (!/[A-Z]/.test(password)) {
+        setError('Password must contain at least one capital letter (A-Z).');
+        return;
+      }
+      if (!/[!@#$%^&*(),.?":{}|<>_\-+=[\]\\/`~]/.test(password)) {
+        setError('Password must contain at least one special character (!@#$%^&*...).');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -35,7 +52,7 @@ export default function AuthModal() {
 
   function handleQuickDemo() {
     setEmail('demo@trao.local');
-    setPassword('demopass123');
+    setPassword('DemoPass@2026!');
     setName('Demo Candidate');
   }
 
@@ -143,6 +160,11 @@ export default function AuthModal() {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
+            {authMode === 'register' && (
+              <p className="text-[11px] text-gray-400 font-mono pt-1">
+                Must be at least 8 characters, with 1 capital letter and 1 special character.
+              </p>
+            )}
           </div>
 
           <button

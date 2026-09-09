@@ -34,10 +34,28 @@ export function requireAuth(req: AuthRequest, res: Response, next: () => void) {
 // --- Auth Routes ---
 export const authRouter = Router();
 
+function validatePassword(password: string): { valid: boolean; message?: string } {
+  if (password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters long.' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one capital (uppercase) letter.' };
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>_\-+=[\]\\/`~]/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one special character.' };
+  }
+  return { valid: true };
+}
+
 authRouter.post('/register', async (req: Request, res: Response) => {
   const { email, password, name } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required.' });
+  }
+
+  const pwdCheck = validatePassword(password);
+  if (!pwdCheck.valid) {
+    return res.status(400).json({ error: pwdCheck.message });
   }
 
   const existing = await storage.findUserByEmail(email);
