@@ -196,7 +196,7 @@ export async function fetchApi<T = any>(endpoint: string, options: RequestInit =
       return { kits } as any;
     }
 
-    if (endpoint.startsWith('/kits/') && options.method === 'GET') {
+    if (endpoint.startsWith('/kits/') && (!options.method || options.method === 'GET')) {
       const id = endpoint.replace('/kits/', '');
       const kits = getLocalKits();
       const found = kits.find(k => k._id === id);

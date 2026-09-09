@@ -183,15 +183,36 @@ export default function KitDetailPage() {
     try {
       setIsLoading(true);
       const res = await api.getKit(kitId);
-      setKit(res.kit);
-      if (res.kit?.questions?.length > 0) {
-        setSelectedMockQuestionId(res.kit.questions[0].id);
+      if (res && res.kit) {
+        setKit(res.kit);
+        if (res.kit?.questions?.length > 0) {
+          setSelectedMockQuestionId(res.kit.questions[0].id);
+        }
+        setIsLoading(false);
+        return;
       }
     } catch (err: any) {
-      console.error('Failed to load kit:', err);
-    } finally {
-      setIsLoading(false);
+      console.warn('API getKit notice:', err.message);
     }
+
+    // Safety fallback: Check local storage or generate immediate recovery kit
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('trao_client_kits');
+        const kits = raw ? JSON.parse(raw) : [];
+        const found = kits.find((k: any) => k._id === kitId);
+        if (found) {
+          setKit(found);
+          if (found.questions?.length > 0) {
+            setSelectedMockQuestionId(found.questions[0].id);
+          }
+          setIsLoading(false);
+          return;
+        }
+      } catch {}
+    }
+
+    setIsLoading(false);
   }
 
   async function handleSaveKit(customKit?: any) {
@@ -398,8 +419,8 @@ export default function KitDetailPage() {
       <div className="py-20 text-center space-y-4">
         <AlertCircle className="w-12 h-12 text-rose-400 mx-auto" />
         <h2 className="text-xl font-bold text-white">Kit not found</h2>
-        <Link href="/" className="inline-flex items-center gap-2 text-sm text-primary-400 hover:underline">
-          <ArrowLeft className="w-4 h-4" /> Return to Dashboard
+        <Link href="/#my-kits-section" className="inline-flex items-center gap-2 text-sm text-primary-400 hover:underline">
+          <ArrowLeft className="w-4 h-4" /> Return to My Kits
         </Link>
       </div>
     );
@@ -415,8 +436,8 @@ export default function KitDetailPage() {
       {/* Top Breadcrumb & Metadata Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
         <div className="space-y-1">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors mb-2">
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+          <Link href="/#my-kits-section" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors mb-2">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to My Kits
           </Link>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{kit.role?.title || 'Software Role'}</h1>
