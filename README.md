@@ -319,16 +319,18 @@ npm test
 
 ---
 
-## 12. Deployment Guide
+## 12. Deployment & Hosting
 
-### Deploying Frontend (Vercel)
-1. Push this repository to GitHub.
-2. Import project into Vercel with root directory set to `client`.
-3. Set environment variable `NEXT_PUBLIC_API_URL` pointing to your deployed backend URL.
+### 🚀 Live Hosted Application
+- **Production URL**: [https://ai-interview-prep-kit-ijap.vercel.app](https://ai-interview-prep-kit-ijap.vercel.app)
+- **Deployment Platform**: Vercel (Next.js 14)
+- **Status**: Active & self-contained with offline-resilient client persistence and fallback generation.
 
-### Deploying Backend (Render / Railway)
-1. Deploy root repository with start command:
-   ```bash
-   npx tsx server/src/index.ts
-   ```
-2. Configure environment variables (`GEMINI_API_KEY`, `PORT=5000`, `ALLOW_LOCAL_URLS=false`).
+### Local Evaluation & Reviewer Setup (Recommended)
+Reviewers running this project locally do **not** need any external cloud deployment:
+1. `npm install && npm --prefix client install`
+2. `npm test` to run the 22 automated test suites.
+3. `npm run evaluate -- --input cases.example.json --output kits.json` for batch evaluation (Section 9).
+4. `npm run dev` to launch the full Node/Express API (`:5000`) and Next.js frontend (`:3000`).
+
+*(Optional: If you ever want to host the Express backend on Render or Railway, deploy the root repository with `npx tsx server/src/index.ts` and set `NEXT_PUBLIC_API_URL` in Vercel. This is completely optional since the platform functions fully standalone on Vercel).*
