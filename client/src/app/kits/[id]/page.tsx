@@ -29,6 +29,14 @@ import {
   Brain,
   ThumbsUp,
   HelpCircle,
+  Play,
+  Pause,
+  X,
+  Check,
+  CheckSquare,
+  Square,
+  Zap,
+  ListChecks,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -55,6 +63,113 @@ export default function KitDetailPage() {
   const [mockAnswerText, setMockAnswerText] = useState('');
   const [mockEvaluating, setMockEvaluating] = useState(false);
   const [mockFeedback, setMockFeedback] = useState<any | null>(null);
+
+  // Schedule interactive features & extras
+  const [completedDays, setCompletedDays] = useState<number[]>([]);
+  const [scheduleFilter, setScheduleFilter] = useState<'all' | 'remaining' | 'completed'>('all');
+  const [selectedScheduleQuestion, setSelectedScheduleQuestion] = useState<any | null>(null);
+  const [copiedQuestionNotice, setCopiedQuestionNotice] = useState<string | null>(null);
+  const [activeTimerDay, setActiveTimerDay] = useState<number | null>(null);
+  const [timerRemaining, setTimerRemaining] = useState<number>(25 * 60);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && kitId) {
+      const saved = localStorage.getItem(`trao_schedule_completed_${kitId}`);
+      if (saved) {
+        try {
+          setCompletedDays(JSON.parse(saved));
+        } catch {}
+      }
+    }
+  }, [kitId]);
+
+  useEffect(() => {
+    let interval: any = null;
+    if (isTimerActive && timerRemaining > 0) {
+      interval = setInterval(() => {
+        setTimerRemaining(t => t - 1);
+      }, 1000);
+    } else if (timerRemaining === 0 && isTimerActive) {
+      setIsTimerActive(false);
+      alert(`🎉 Day ${activeTimerDay} study timer finished! Great focus session.`);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerActive, timerRemaining, activeTimerDay]);
+
+  function toggleDayCompleted(dayNum: number, e?: React.MouseEvent) {
+    if (e) e.stopPropagation();
+    setCompletedDays(prev => {
+      const updated = prev.includes(dayNum) ? prev.filter(d => d !== dayNum) : [...prev, dayNum];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`trao_schedule_completed_${kitId}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  }
+
+  function startStudyTimer(dayNum: number, mins = 25, e?: React.MouseEvent) {
+    if (e) e.stopPropagation();
+    setActiveTimerDay(dayNum);
+    setTimerRemaining(mins * 60);
+    setIsTimerActive(true);
+  }
+
+  function jumpToMockFromSchedule(qid: string) {
+    setSelectedScheduleQuestion(null);
+    setSelectedMockQuestionId(qid);
+    setActiveTab('mock');
+  }
+
+  function jumpToFlashcardFromSchedule(qid: string) {
+    setSelectedScheduleQuestion(null);
+    if (kit && kit.flashcards?.length > 0) {
+      const idx = kit.flashcards.findIndex(
+        (fc: any) => fc.id === qid || fc.question_id === qid
+      );
+      setCurrentCardIndex(idx >= 0 ? idx : 0);
+      setIsFlipped(false);
+    }
+    setActiveTab('practice');
+  }
+
+  function jumpToBuilderFromSchedule(qid: string) {
+    setSelectedScheduleQuestion(null);
+    const q = kit?.questions?.find((x: any) => x.id === qid);
+    if (q) {
+      setSelectedCategory(q.category || 'all');
+    }
+    setActiveTab('builder');
+  }
+
+  function copyQuestionOutline(q: any) {
+    const text = `Question: ${q.prompt}\nCategory: ${q.category} (Difficulty: ${q.difficulty}/3)\n\nExpected Answer Outline:\n${q.answer_outline}`;
+    navigator.clipboard.writeText(text);
+    setCopiedQuestionNotice(q.id);
+    setTimeout(() => setCopiedQuestionNotice(null), 2500);
+  }
+
+  function exportScheduleAgenda() {
+    if (!kit || !kit.schedule?.days) return;
+    let md = `# Interview Prep Schedule - ${kit.role?.title || 'Software Engineer'} at ${kit.source?.company || 'Company'}\n`;
+    md += `Generated: ${new Date().toLocaleDateString()} | Total Days: ${kit.schedule.days.length}\n\n`;
+
+    kit.schedule.days.forEach((d: any) => {
+      md += `## Day ${d.day}: ${d.focus} (${d.minutes} mins)\n`;
+      if (d.question_ids?.length > 0) {
+        d.question_ids.forEach((qid: string) => {
+          const q = kit.questions.find((x: any) => x.id === qid);
+          if (q) {
+            md += `- [${q.id}] [${q.category.toUpperCase()}] ${q.prompt}\n`;
+          }
+        });
+      }
+      md += `\n`;
+    });
+
+    navigator.clipboard.writeText(md);
+    alert('📋 Schedule copied to clipboard as Markdown agenda!');
+  }
 
   useEffect(() => {
     loadKit();
@@ -555,31 +670,113 @@ export default function KitDetailPage() {
       {/* TAB 2: STUDY SCHEDULE (Section 8) */}
       {activeTab === 'schedule' && (
         <div className="space-y-6">
-          <div className="glass-panel p-6 rounded-2xl space-y-4">
+          {/* Schedule Header Card */}
+          <div className="glass-panel p-6 rounded-2xl space-y-5 border border-white/10">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-bold text-white">Deterministic Preparation Schedule</h3>
-                <p className="text-xs text-gray-400">
-                  Every must-have requirement is allocated. Harder topics front-loaded on earlier days.
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-accent-teal" />
+                  Deterministic Preparation Schedule
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Every must-have requirement is allocated. Harder topics front-loaded on earlier days. Click any question to inspect details or practice.
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-mono text-accent-teal font-semibold">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={exportScheduleAgenda}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-1.5 transition-colors"
+                  title="Copy formatted schedule to clipboard"
+                >
+                  <Copy className="w-3.5 h-3.5 text-accent-cyan" />
+                  <span>Copy Agenda</span>
+                </button>
+                <span className="text-xs font-mono text-accent-teal font-semibold px-2.5 py-1 rounded-lg bg-accent-teal/10 border border-accent-teal/20">
                   {kit.schedule?.days?.length || 0} Total Days
                 </span>
                 <button
                   onClick={() => handleRegenerateSchedule()}
                   disabled={isRegenerating}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" /> Re-allocate
+                  <RotateCcw className={`w-3.5 h-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />
+                  <span>Re-allocate</span>
                 </button>
+              </div>
+            </div>
+
+            {/* Completion Progress & Filter Controls */}
+            <div className="pt-3 border-t border-white/10 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-white">Study Progress:</span>
+                  <span className="font-mono text-emerald-400 font-bold">
+                    {completedDays.length} of {kit.schedule?.days?.length || 0} Days Completed
+                  </span>
+                  <span className="text-gray-400">
+                    ({kit.schedule?.days?.length ? Math.round((completedDays.length / kit.schedule.days.length) * 100) : 0}%)
+                  </span>
+                </div>
+
+                {/* Filter Pills */}
+                <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setScheduleFilter('all')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      scheduleFilter === 'all'
+                        ? 'bg-primary-600 text-white shadow-sm'
+                        : 'text-gray-400 hover:text-gray-200'
+                    }`}
+                  >
+                    All Days ({kit.schedule?.days?.length || 0})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleFilter('remaining')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      scheduleFilter === 'remaining'
+                        ? 'bg-primary-600 text-white shadow-sm'
+                        : 'text-gray-400 hover:text-gray-200'
+                    }`}
+                  >
+                    Remaining ({(kit.schedule?.days?.length || 0) - completedDays.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleFilter('completed')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      scheduleFilter === 'completed'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-gray-400 hover:text-gray-200'
+                    }`}
+                  >
+                    Completed ({completedDays.length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+                  style={{
+                    width: `${
+                      kit.schedule?.days?.length
+                        ? (completedDays.length / kit.schedule.days.length) * 100
+                        : 0
+                    }%`,
+                  }}
+                />
               </div>
             </div>
 
             {/* Adjust Days Slider */}
             <div className="pt-2 border-t border-white/10 flex items-center gap-4">
-              <span className="text-xs text-gray-300 whitespace-nowrap">Adjust Days ({kit.schedule?.days_available}d):</span>
+              <span className="text-xs text-gray-300 whitespace-nowrap">
+                Adjust Days Plan ({kit.schedule?.days_available || 5}d):
+              </span>
               <input
                 type="range"
                 min="1"
@@ -591,43 +788,328 @@ export default function KitDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {kit.schedule?.days?.map((d: any) => (
-              <div key={d.day} className="glass-panel p-6 rounded-2xl border hover:border-primary-500/30 transition-all space-y-4 flex flex-col justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary-500/20 text-primary-300 font-mono">
-                      DAY {d.day}
-                    </span>
-                    <span className="text-xs font-mono text-gray-400 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-accent-teal" /> {d.minutes} mins
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-base text-white line-clamp-2">{d.focus}</h4>
+          {/* Active Study Timer Bar (When timer is running) */}
+          {activeTimerDay !== null && (
+            <div className="glass-panel p-4 rounded-2xl border-2 border-accent-teal/50 bg-accent-teal/10 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in shadow-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent-teal/20 text-accent-teal flex items-center justify-center font-bold">
+                  <Clock className="w-5 h-5 animate-pulse" />
                 </div>
-
-                <div className="space-y-2 pt-3 border-t border-white/10">
-                  <span className="text-[11px] font-semibold text-gray-400 block uppercase tracking-wider">
-                    Assigned Questions ({d.question_ids?.length || 0}):
-                  </span>
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                    {d.question_ids?.map((qid: string) => {
-                      const q = kit.questions.find((x: any) => x.id === qid);
-                      return (
-                        <div key={qid} className="p-2 rounded-lg bg-black/40 border border-white/5 text-xs text-gray-300 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[10px] text-accent-teal font-bold">{qid}</span>
-                            <span className="text-[10px] text-gray-500 capitalize">{q?.category || 'tech'}</span>
-                          </div>
-                          <p className="line-clamp-2 text-gray-300 text-[11px]">{q?.prompt || 'Question prompt'}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">
+                    Day {activeTimerDay} Study Session in Progress
+                  </h4>
+                  <p className="text-xs text-gray-300">
+                    {kit.schedule?.days?.find((d: any) => d.day === activeTimerDay)?.focus}
+                  </p>
                 </div>
               </div>
-            ))}
+
+              <div className="flex items-center gap-4">
+                <span className="font-mono text-3xl font-extrabold tracking-widest text-white">
+                  {Math.floor(timerRemaining / 60)}:
+                  {timerRemaining % 60 < 10 ? `0${timerRemaining % 60}` : timerRemaining % 60}
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsTimerActive(!isTimerActive)}
+                    className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    title={isTimerActive ? 'Pause timer' : 'Resume timer'}
+                  >
+                    {isTimerActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimerRemaining(25 * 60)}
+                    className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    title="Reset timer to 25 mins"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleDayCompleted(activeTimerDay)}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Mark Day Complete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTimerActive(false);
+                      setActiveTimerDay(null);
+                    }}
+                    className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10"
+                    title="Close study timer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Day Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {kit.schedule?.days
+              ?.filter((d: any) => {
+                const isDone = completedDays.includes(d.day);
+                if (scheduleFilter === 'completed') return isDone;
+                if (scheduleFilter === 'remaining') return !isDone;
+                return true;
+              })
+              .map((d: any) => {
+                const isDone = completedDays.includes(d.day);
+                const isTimerOnThisDay = activeTimerDay === d.day;
+
+                return (
+                  <div
+                    key={d.day}
+                    className={`glass-panel p-6 rounded-2xl border transition-all space-y-4 flex flex-col justify-between shadow-lg ${
+                      isDone
+                        ? 'border-emerald-500/40 bg-emerald-950/15'
+                        : isTimerOnThisDay
+                        ? 'border-accent-teal ring-2 ring-accent-teal/30'
+                        : 'hover:border-primary-500/40'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      {/* Card Header with Mark Done Toggle */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold font-mono ${
+                              isDone
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : 'bg-primary-500/20 text-primary-300'
+                            }`}
+                          >
+                            DAY {d.day}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={e => toggleDayCompleted(d.day, e)}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all flex items-center gap-1.5 ${
+                              isDone
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10'
+                            }`}
+                          >
+                            {isDone ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-400" />
+                                <span>Completed</span>
+                              </>
+                            ) : (
+                              <>
+                                <Square className="w-3 h-3" />
+                                <span>Mark Done</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        <span className="text-xs font-mono text-gray-400 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-accent-teal" /> {d.minutes} mins
+                        </span>
+                      </div>
+
+                      <h4
+                        className={`font-bold text-base line-clamp-2 ${
+                          isDone ? 'text-gray-300 line-through opacity-85' : 'text-white'
+                        }`}
+                      >
+                        {d.focus}
+                      </h4>
+                    </div>
+
+                    {/* Assigned Questions (Clickable List) */}
+                    <div className="space-y-2 pt-3 border-t border-white/10">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-gray-400 block uppercase tracking-wider">
+                          Assigned Questions ({d.question_ids?.length || 0}):
+                        </span>
+                        <span className="text-[10px] text-accent-teal/80">Click card to open</span>
+                      </div>
+
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {d.question_ids?.map((qid: string) => {
+                          const q = kit.questions.find((x: any) => x.id === qid);
+                          return (
+                            <div
+                              key={qid}
+                              onClick={() => setSelectedScheduleQuestion(q)}
+                              className="p-2.5 rounded-xl bg-black/50 border border-white/10 hover:border-primary-500/60 hover:bg-white/10 transition-all cursor-pointer group shadow-sm flex flex-col justify-between space-y-1.5"
+                              title="Click to inspect question outline & practice"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-[11px] text-accent-teal font-bold group-hover:underline">
+                                    {qid}
+                                  </span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300 capitalize font-medium">
+                                    {q?.category || 'tech'}
+                                  </span>
+                                  <span className="text-[10px] text-amber-400" title={`Difficulty ${q?.difficulty || 1}/3`}>
+                                    {'⭐'.repeat(q?.difficulty || 1)}
+                                  </span>
+                                </div>
+                                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-primary-300 transition-colors" />
+                              </div>
+
+                              <p className="line-clamp-2 text-gray-200 text-xs font-medium group-hover:text-white leading-relaxed">
+                                {q?.prompt || 'Question prompt'}
+                              </p>
+
+                              <div className="flex items-center justify-between pt-1 text-[10px] text-gray-500 group-hover:text-primary-300 font-medium">
+                                <span>Covers: {q?.requirement_ids?.join(', ') || 'General'}</span>
+                                <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                                  Inspect & Practise →
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Day Action Buttons */}
+                    <div className="pt-3 border-t border-white/10 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={e => startStudyTimer(d.day, d.minutes || 25, e)}
+                        className="flex-1 py-2 px-2.5 rounded-xl text-xs font-medium text-gray-200 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Play className="w-3.5 h-3.5 text-accent-teal" />
+                        <span>Start Session</span>
+                      </button>
+
+                      {d.question_ids?.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => jumpToMockFromSchedule(d.question_ids[0])}
+                          className="flex-1 py-2 px-2.5 rounded-xl text-xs font-medium text-primary-300 bg-primary-500/10 hover:bg-primary-500/20 border border-primary-500/20 transition-colors flex items-center justify-center gap-1.5"
+                          title="Launch AI Mock Interview for this day's questions"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-primary-400" />
+                          <span>Mock Interview</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
+
+          {/* Interactive Question Detail & Practice Modal */}
+          {selectedScheduleQuestion && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+              <div className="glass-panel w-full max-w-2xl p-6 sm:p-8 rounded-3xl border border-white/20 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto">
+                {/* Close Button */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedScheduleQuestion(null)}
+                  className="absolute top-5 right-5 text-gray-400 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                {/* Modal Header */}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-accent-teal/10 text-accent-teal border border-accent-teal/20">
+                      {selectedScheduleQuestion.id}
+                    </span>
+                    <span className="text-xs px-2.5 py-1 rounded-lg bg-primary-500/10 text-primary-300 border border-primary-500/20 capitalize font-medium">
+                      {selectedScheduleQuestion.category} Question
+                    </span>
+                    <span className="text-xs text-amber-400 font-medium px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      {'⭐'.repeat(selectedScheduleQuestion.difficulty || 1)} Difficulty {selectedScheduleQuestion.difficulty}/3
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-extrabold text-white leading-snug">
+                    {selectedScheduleQuestion.prompt}
+                  </h3>
+                </div>
+
+                {/* Requirements Covered */}
+                {selectedScheduleQuestion.requirement_ids?.length > 0 && (
+                  <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">
+                      Assigned Job Description Requirements:
+                    </span>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {selectedScheduleQuestion.requirement_ids.map((rid: string) => {
+                        const req = kit.role?.requirements?.find((r: any) => r.id === rid);
+                        return (
+                          <div
+                            key={rid}
+                            className="px-2.5 py-1 rounded-lg bg-black/40 border border-white/10 text-xs text-gray-300 font-mono"
+                          >
+                            <span className="text-accent-teal font-bold">{rid}:</span> {req?.text || 'Requirement'}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Expected Answer Outline & Talking Points */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider">
+                      Expected Answer Outline & Key Points
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => copyQuestionOutline(selectedScheduleQuestion)}
+                      className="text-xs text-accent-teal hover:underline flex items-center gap-1 font-mono"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      {copiedQuestionNotice === selectedScheduleQuestion.id ? 'Copied! ✓' : 'Copy Outline'}
+                    </button>
+                  </div>
+                  <div className="p-4 rounded-xl bg-black/60 border border-white/15 text-gray-200 text-xs font-mono whitespace-pre-wrap leading-relaxed">
+                    {selectedScheduleQuestion.answer_outline || 'No outline provided.'}
+                  </div>
+                </div>
+
+                {/* Direct Action Buttons */}
+                <div className="pt-2 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => jumpToMockFromSchedule(selectedScheduleQuestion.id)}
+                    className="py-3 px-4 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-primary-600 via-primary-500 to-accent-teal hover:opacity-95 shadow-lg shadow-primary-500/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Practise with AI</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => jumpToFlashcardFromSchedule(selectedScheduleQuestion.id)}
+                    className="py-3 px-4 rounded-xl text-xs font-semibold text-accent-teal bg-accent-teal/10 hover:bg-accent-teal/20 border border-accent-teal/30 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Brain className="w-4 h-4" />
+                    <span>Study Flashcard</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => jumpToBuilderFromSchedule(selectedScheduleQuestion.id)}
+                    className="py-3 px-4 rounded-xl text-xs font-semibold text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Layers className="w-4 h-4" />
+                    <span>Edit in Builder</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
