@@ -47,6 +47,8 @@ function validatePassword(password: string): { valid: boolean; message?: string 
   return { valid: true };
 }
 
+import { sendVerificationEmail } from './mailer.js';
+
 authRouter.post('/register', async (req: Request, res: Response) => {
   const { email, password, name } = req.body;
   if (!email || !password) {
@@ -63,20 +65,96 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     return res.status(409).json({ error: 'An account with this email already exists.' });
   }
 
+  // Generate 6-digit verification code
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
   const user: UserRecord = {
     id: `u_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     email,
-    passwordHash: Buffer.from(password).toString('base64'), // Lightweight hashing for minimal requirement
+    passwordHash: Buffer.from(password).toString('base64'),
     name: name || email.split('@')[0],
     createdAt: new Date().toISOString(),
+    isVerified: false,
+    verificationCode,
+    verificationCodeExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   };
 
   await storage.saveUser(user);
-  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+
+  // Dispatch verification email
+  await sendVerificationEmail(email, verificationCode, user.name);
 
   return res.status(201).json({
+    message: 'Verification code sent to your email.',
+    requiresVerification: true,
+    email: user.email,
+    previewCode: verificationCode,
+  });
+});
+
+authRouter.post('/verify-email', async (req: Request, res: Response) => {
+  const { email, code } = req.body;
+  if (!email || !code) {
+    return res.status(400).json({ error: 'Email and verification code are required.' });
+  }
+
+  const user = await storage.findUserByEmail(email);
+  if (!user) {
+    return res.status(404).json({ error: 'User account not found.' });
+  }
+
+  if (user.isVerified) {
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    return res.json({
+      token,
+      user: { id: user.id, email: user.email, name: user.name, isVerified: true },
+      message: 'Account is already verified.',
+    });
+  }
+
+  if (user.verificationCode !== code.trim()) {
+    return res.status(400).json({ error: 'Invalid verification code. Please check your email and try again.' });
+  }
+
+  // Mark as verified
+  user.isVerified = true;
+  delete user.verificationCode;
+  delete user.verificationCodeExpiresAt;
+  await storage.saveUser(user);
+
+  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+  return res.json({
     token,
-    user: { id: user.id, email: user.email, name: user.name },
+    user: { id: user.id, email: user.email, name: user.name, isVerified: true },
+    message: 'Email successfully verified! Welcome.',
+  });
+});
+
+authRouter.post('/resend-code', async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required.' });
+  }
+
+  const user = await storage.findUserByEmail(email);
+  if (!user) {
+    return res.status(404).json({ error: 'User account not found.' });
+  }
+
+  if (user.isVerified) {
+    return res.status(400).json({ error: 'Account is already verified.' });
+  }
+
+  const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+  user.verificationCode = newCode;
+  user.verificationCodeExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await storage.saveUser(user);
+
+  await sendVerificationEmail(email, newCode, user.name);
+
+  return res.json({
+    message: 'A new verification code has been dispatched to your email.',
+    previewCode: newCode,
   });
 });
 
@@ -91,10 +169,20 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     return res.status(401).json({ error: 'Invalid email or password.' });
   }
 
+  // Check email verification status
+  if (user.isVerified === false) {
+    return res.status(403).json({
+      error: 'Please verify your email address before logging in.',
+      requiresVerification: true,
+      email: user.email,
+      previewCode: user.verificationCode,
+    });
+  }
+
   const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
   return res.json({
     token,
-    user: { id: user.id, email: user.email, name: user.name },
+    user: { id: user.id, email: user.email, name: user.name, isVerified: true },
   });
 });
 

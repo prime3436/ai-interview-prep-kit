@@ -28,9 +28,22 @@ export async function fetchApi<T = any>(endpoint: string, options: RequestInit =
 export const api = {
   // Auth
   register: (data: { email: string; password: string; name?: string }) =>
-    fetchApi('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+    fetchApi<{ message: string; requiresVerification: boolean; email: string; previewCode?: string }>(
+      '/auth/register',
+      { method: 'POST', body: JSON.stringify(data) }
+    ),
+  verifyEmail: (data: { email: string; code: string }) =>
+    fetchApi<{ token: string; user: any; message: string }>('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  resendCode: (data: { email: string }) =>
+    fetchApi<{ message: string; previewCode?: string }>('/auth/resend-code', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   login: (data: { email: string; password: string }) =>
-    fetchApi('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    fetchApi<{ token: string; user: any }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => fetchApi('/auth/me'),
 
   // Kits

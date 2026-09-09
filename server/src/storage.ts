@@ -9,6 +9,9 @@ export interface UserRecord {
   passwordHash: string;
   name: string;
   createdAt: string;
+  isVerified: boolean;
+  verificationCode?: string;
+  verificationCodeExpiresAt?: string;
 }
 
 export interface PracticeProgressRecord {

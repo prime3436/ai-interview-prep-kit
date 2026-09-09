@@ -21,10 +21,11 @@ import {
 import { api } from '@/lib/api';
 
 import { useAuth } from '@/lib/auth-context';
+import LoginScreen from '@/components/LoginScreen';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { user, setShowAuthModal, setAuthMode } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   // Form states
   const [jd, setJd] = useState('');
@@ -143,6 +144,19 @@ Requirements:
 - Experience partnering with product and design on complex component systems
 - Preferred: Experience with Tailwind CSS and animation`);
     }
+  }
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
+        <RotateCcw className="w-8 h-8 animate-spin text-primary-400" />
+        <p className="text-sm text-gray-400 font-mono">Loading authentication session...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen />;
   }
 
   return (
