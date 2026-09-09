@@ -13,6 +13,24 @@ app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    name: 'AI Interview Prep Kit API (Trao FS-AI-INTERVIEW-01)',
+    status: 'online',
+    frontend: 'http://localhost:3000',
+    documentation: 'See README.md for full specification',
+    endpoints: {
+      health: '/api/health',
+      kits: '/api/kits',
+      auth: '/api/auth',
+      practice: '/api/practice',
+      mockInterview: '/api/mock-interview',
+      batch: '/api/batch',
+    },
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({
