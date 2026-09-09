@@ -19,8 +19,8 @@ export default function Header() {
             <span className="font-bold text-lg tracking-tight text-white group-hover:text-primary-400 transition-colors">
               InterviewPrep<span className="text-accent-teal">.AI</span>
             </span>
-            <span className="block text-[10px] text-gray-400 font-mono tracking-wider">
-              TRAO FS-AI-INTERVIEW-01
+            <span className="block text-[10px] text-accent-teal/80 font-mono tracking-wider uppercase">
+              Autonomous Prep Platform
             </span>
           </div>
         </Link>

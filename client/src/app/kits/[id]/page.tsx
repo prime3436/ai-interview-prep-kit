@@ -37,6 +37,9 @@ import {
   Square,
   Zap,
   ListChecks,
+  Shuffle,
+  RefreshCw,
+  Trophy,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -57,6 +60,7 @@ export default function KitDetailPage() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [practiceConfidence, setPracticeConfidence] = useState<Record<string, number>>({});
+  const [showPracticeSummary, setShowPracticeSummary] = useState(false);
 
   // Mock Interview state
   const [selectedMockQuestionId, setSelectedMockQuestionId] = useState<string>('');
@@ -305,11 +309,41 @@ export default function KitDetailPage() {
     setPracticeConfidence(prev => ({ ...prev, [currentCard.id]: rating }));
     api.recordCardConfidence(kitId, currentCard.id, rating).catch(() => {});
 
-    // Advance to next card
+    // Advance to next card or trigger completion summary
     if (currentCardIndex < kit.flashcards.length - 1) {
       setIsFlipped(false);
       setCurrentCardIndex(prev => prev + 1);
+    } else {
+      setShowPracticeSummary(true);
     }
+  }
+
+  function restartPractice() {
+    setCurrentCardIndex(0);
+    setIsFlipped(false);
+    setShowPracticeSummary(false);
+  }
+
+  function resetAllPracticeRatings() {
+    if (confirm('Reset all ratings and restart practice session?')) {
+      setPracticeConfidence({});
+      setCurrentCardIndex(0);
+      setIsFlipped(false);
+      setShowPracticeSummary(false);
+      setSaveNotification('Ratings cleared! Start fresh.');
+      setTimeout(() => setSaveNotification(null), 2500);
+    }
+  }
+
+  function shuffleFlashcards() {
+    if (!kit || !kit.flashcards) return;
+    const shuffled = [...kit.flashcards].sort(() => Math.random() - 0.5);
+    setKit({ ...kit, flashcards: shuffled });
+    setCurrentCardIndex(0);
+    setIsFlipped(false);
+    setShowPracticeSummary(false);
+    setSaveNotification('Flashcards shuffled!');
+    setTimeout(() => setSaveNotification(null), 2500);
   }
 
   function reorderByWeakest() {
@@ -322,6 +356,7 @@ export default function KitDetailPage() {
     setKit({ ...kit, flashcards: sorted });
     setCurrentCardIndex(0);
     setIsFlipped(false);
+    setShowPracticeSummary(false);
     setSaveNotification('Flashcards reordered: lowest confidence cards first!');
     setTimeout(() => setSaveNotification(null), 3000);
   }
@@ -1114,124 +1149,369 @@ export default function KitDetailPage() {
       )}
 
       {/* TAB 3: PRACTICE MODE (Section 7) */}
-      {activeTab === 'practice' && (
-        <div className="max-w-2xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-white">Active Recall Flashcards</h3>
-              <p className="text-xs text-gray-400">Step through cards, test your knowledge, and rate confidence.</p>
-            </div>
-            <button
-              onClick={reorderByWeakest}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-colors"
-            >
-              Order by Weakest First
-            </button>
-          </div>
+      {activeTab === 'practice' && (() => {
+        const totalCards = kit.flashcards?.length || 0;
+        const ratedCount = Object.keys(practiceConfidence).length;
+        const masteredCount = Object.values(practiceConfidence).filter((v: any) => v === 3).length;
+        const gettingThereCount = Object.values(practiceConfidence).filter((v: any) => v === 2).length;
+        const needsWorkCount = Object.values(practiceConfidence).filter((v: any) => v === 1).length;
+        const masteryPercentage = totalCards > 0
+          ? Math.round(((masteredCount * 3 + gettingThereCount * 2 + needsWorkCount * 1) / (totalCards * 3)) * 100)
+          : 0;
 
-          {kit.flashcards?.length > 0 ? (
-            <div className="space-y-6">
-              {/* Progress counter */}
-              <div className="flex items-center justify-between text-xs font-mono text-gray-400">
-                <span>
-                  Card {currentCardIndex + 1} of {kit.flashcards.length}
-                </span>
-                <span>
-                  {Object.keys(practiceConfidence).length} of {kit.flashcards.length} Rated
-                </span>
+        return (
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* Top Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-accent-teal" />
+                  Active Recall Flashcards
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Step through cards, test your knowledge, and rate confidence to build permanent recall.
+                </p>
               </div>
 
-              {/* 3D Flip Flashcard */}
-              <div
-                onClick={() => setIsFlipped(!isFlipped)}
-                className="cursor-pointer min-h-[280px] p-8 glass-panel rounded-3xl border-2 hover:border-primary-500/50 transition-all flex flex-col justify-between shadow-2xl relative select-none"
-              >
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span className="font-mono font-bold text-accent-teal">
-                    {kit.flashcards[currentCardIndex].id}
-                  </span>
-                  <span className="text-[11px] bg-white/10 px-2 py-0.5 rounded">
-                    {isFlipped ? 'ANSWER OUTLINE (Click to flip)' : 'QUESTION PROMPT (Click to reveal answer)'}
-                  </span>
-                </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={reorderByWeakest}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-colors flex items-center gap-1.5"
+                  title="Show cards rated 'Needs Work' first"
+                >
+                  <span>Weakest First</span>
+                </button>
 
-                <div className="my-auto py-6 text-center">
-                  {isFlipped ? (
-                    <div className="text-left space-y-3 font-mono text-sm text-gray-200 leading-relaxed whitespace-pre-line">
-                      {kit.flashcards[currentCardIndex].back}
+                <button
+                  type="button"
+                  onClick={shuffleFlashcards}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex items-center gap-1.5"
+                  title="Randomize card order"
+                >
+                  <Shuffle className="w-3.5 h-3.5 text-accent-cyan" />
+                  <span>Shuffle</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={restartPractice}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex items-center gap-1.5"
+                  title="Restart from Card 1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Restart</span>
+                </button>
+
+                {ratedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPracticeSummary(!showPracticeSummary)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-colors flex items-center gap-1.5"
+                  >
+                    <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{showPracticeSummary ? 'Back to Cards' : 'Summary'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {totalCards > 0 ? (
+              showPracticeSummary ? (
+                /* ================= SESSION COMPLETION SUMMARY VIEW ================= */
+                <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-emerald-500/30 space-y-6 shadow-2xl animate-fade-in">
+                  <div className="text-center space-y-3">
+                    <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border-2 border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
+                      <Trophy className="w-8 h-8 text-amber-400 animate-bounce" />
                     </div>
-                  ) : (
-                    <p className="text-xl font-bold text-white leading-snug">
-                      {kit.flashcards[currentCardIndex].front}
+                    <h3 className="text-2xl font-extrabold text-white">
+                      Flashcard Session Completed!
+                    </h3>
+                    <p className="text-xs text-gray-400 max-w-md mx-auto">
+                      You have reviewed and rated all <span className="text-white font-bold">{totalCards}</span> flashcards for this role.
                     </p>
+                  </div>
+
+                  {/* Mastery Breakdown Stats */}
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 space-y-1">
+                      <span className="text-2xl font-black text-emerald-400 font-mono">{masteredCount}</span>
+                      <span className="block text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Mastered</span>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/20 space-y-1">
+                      <span className="text-2xl font-black text-amber-400 font-mono">{gettingThereCount}</span>
+                      <span className="block text-[11px] font-bold text-amber-300 uppercase tracking-wider">Getting There</span>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-rose-950/20 border border-rose-500/20 space-y-1">
+                      <span className="text-2xl font-black text-rose-400 font-mono">{needsWorkCount}</span>
+                      <span className="block text-[11px] font-bold text-rose-300 uppercase tracking-wider">Needs Work</span>
+                    </div>
+                  </div>
+
+                  {/* Mastery Percentage Progress Bar */}
+                  <div className="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-300 font-medium">Role Knowledge Mastery Index</span>
+                      <span className="font-mono text-accent-teal font-bold text-sm">{masteryPercentage}%</span>
+                    </div>
+                    <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-accent-cyan transition-all duration-700"
+                        style={{ width: `${masteryPercentage}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Card-by-Card Performance List */}
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-semibold text-gray-400 block uppercase tracking-wider">
+                      Card Confidence Ratings (Click any card to jump back to it):
+                    </span>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                      {kit.flashcards.map((fc: any, idx: number) => {
+                        const conf = practiceConfidence[fc.id];
+                        return (
+                          <div
+                            key={fc.id}
+                            onClick={() => {
+                              setCurrentCardIndex(idx);
+                              setIsFlipped(false);
+                              setShowPracticeSummary(false);
+                            }}
+                            className="p-2.5 rounded-xl bg-black/50 border border-white/10 hover:border-primary-500/50 hover:bg-white/5 transition-all cursor-pointer flex items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <span className="font-mono text-accent-teal font-bold">{fc.id}</span>
+                              <span className="text-gray-300 truncate max-w-xs">{fc.front}</span>
+                            </div>
+                            <div>
+                              {conf === 3 ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                  Mastered
+                                </span>
+                              ) : conf === 2 ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                  Getting There
+                                </span>
+                              ) : conf === 1 ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                  Needs Work
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-gray-500">Unrated</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Recommended Next Actions */}
+                  <div className="pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={restartPractice}
+                      className="py-3 px-4 rounded-xl text-xs font-semibold text-white bg-primary-600 hover:bg-primary-500 transition-all flex items-center justify-center gap-2 shadow-md"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Review Cards Again</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={reorderByWeakest}
+                      className="py-3 px-4 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all flex items-center justify-center gap-2"
+                    >
+                      <span>Drill Weakest Cards</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('mock')}
+                      className="py-3 px-4 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-accent-teal to-accent-cyan hover:opacity-95 text-black font-bold transition-all flex items-center justify-center gap-2"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Take AI Mock Interview</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('schedule')}
+                      className="py-3 px-4 rounded-xl text-xs font-semibold text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Calendar className="w-4 h-4 text-accent-teal" />
+                      <span>Check Study Schedule</span>
+                    </button>
+                  </div>
+
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={resetAllPracticeRatings}
+                      className="text-xs text-rose-400 hover:underline"
+                    >
+                      Reset All Ratings & Start Fresh
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* ================= ACTIVE FLASHCARD VIEW ================= */
+                <div className="space-y-6">
+                  {/* All Cards Rated Banner Alert */}
+                  {ratedCount === totalCards && (
+                    <div
+                      onClick={() => setShowPracticeSummary(true)}
+                      className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-teal-950/40 to-primary-950/40 border border-emerald-500/40 flex items-center justify-between cursor-pointer hover:border-emerald-500 transition-all group shadow-md"
+                    >
+                      <div className="flex items-center gap-2.5 text-xs text-emerald-300 font-medium">
+                        <Trophy className="w-4 h-4 text-amber-400 animate-bounce" />
+                        <span>All {totalCards} cards rated! Click to view your complete mastery debrief & options.</span>
+                      </div>
+                      <span className="text-xs text-accent-teal font-semibold group-hover:underline flex items-center gap-1">
+                        View Summary &rarr;
+                      </span>
+                    </div>
                   )}
-                </div>
 
-                <div className="text-center text-[11px] text-gray-500 font-mono">
-                  Press card to {isFlipped ? 'hide answer' : 'reveal answer'}
-                </div>
-              </div>
+                  {/* Progress Counter & Stats */}
+                  <div className="flex items-center justify-between text-xs font-mono text-gray-400">
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-bold text-white">Card {currentCardIndex + 1}</span> of {totalCards}
+                    </span>
+                    <span className="text-accent-teal">
+                      {ratedCount} of {totalCards} Rated ({masteryPercentage}% Mastery)
+                    </span>
+                  </div>
 
-              {/* Confidence Rating Buttons */}
-              <div className="space-y-2">
-                <span className="text-xs text-gray-400 block text-center font-medium">How well did you know this?</span>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    onClick={() => recordConfidence(1)}
-                    className="py-3 px-4 rounded-xl text-xs font-bold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all"
+                  {/* 3D Flip Flashcard */}
+                  <div
+                    onClick={() => setIsFlipped(!isFlipped)}
+                    className="cursor-pointer min-h-[300px] p-8 glass-panel rounded-3xl border-2 hover:border-primary-500/50 transition-all flex flex-col justify-between shadow-2xl relative select-none"
                   >
-                    1. Needs Work
-                  </button>
-                  <button
-                    onClick={() => recordConfidence(2)}
-                    className="py-3 px-4 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all"
-                  >
-                    2. Getting There
-                  </button>
-                  <button
-                    onClick={() => recordConfidence(3)}
-                    className="py-3 px-4 rounded-xl text-xs font-bold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all"
-                  >
-                    3. Mastered
-                  </button>
-                </div>
-              </div>
+                    <div className="flex items-center justify-between text-xs text-gray-400">
+                      <span className="font-mono font-bold text-accent-teal">
+                        {kit.flashcards[currentCardIndex]?.id}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {practiceConfidence[kit.flashcards[currentCardIndex]?.id] && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-mono">
+                            Rating: {practiceConfidence[kit.flashcards[currentCardIndex]?.id]}/3
+                          </span>
+                        )}
+                        <span className="text-[11px] bg-white/10 px-2 py-0.5 rounded">
+                          {isFlipped ? 'ANSWER OUTLINE (Click to flip)' : 'QUESTION PROMPT (Click to reveal answer)'}
+                        </span>
+                      </div>
+                    </div>
 
-              {/* Card Navigation */}
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  onClick={() => {
-                    if (currentCardIndex > 0) {
-                      setIsFlipped(false);
-                      setCurrentCardIndex(prev => prev - 1);
-                    }
-                  }}
-                  disabled={currentCardIndex === 0}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-gray-300 hover:bg-white/5 disabled:opacity-30"
-                >
-                  &larr; Previous Card
-                </button>
-                <button
-                  onClick={() => {
-                    if (currentCardIndex < kit.flashcards.length - 1) {
-                      setIsFlipped(false);
-                      setCurrentCardIndex(prev => prev + 1);
-                    }
-                  }}
-                  disabled={currentCardIndex === kit.flashcards.length - 1}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-gray-300 hover:bg-white/5 disabled:opacity-30"
-                >
-                  Next Card &rarr;
-                </button>
+                    <div className="my-auto py-6 text-center">
+                      {isFlipped ? (
+                        <div className="text-left space-y-3 font-mono text-sm text-gray-200 leading-relaxed whitespace-pre-line">
+                          {kit.flashcards[currentCardIndex]?.back}
+                        </div>
+                      ) : (
+                        <p className="text-xl sm:text-2xl font-bold text-white leading-snug">
+                          {kit.flashcards[currentCardIndex]?.front}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="text-center text-[11px] text-gray-500 font-mono">
+                      Press card to {isFlipped ? 'hide answer' : 'reveal answer'}
+                    </div>
+                  </div>
+
+                  {/* Confidence Rating Buttons */}
+                  <div className="space-y-2">
+                    <span className="text-xs text-gray-400 block text-center font-medium">How well did you know this?</span>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => recordConfidence(1)}
+                        className={`py-3 px-4 rounded-xl text-xs font-bold transition-all ${
+                          practiceConfidence[kit.flashcards[currentCardIndex]?.id] === 1
+                            ? 'bg-rose-500 text-white ring-2 ring-rose-400'
+                            : 'text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20'
+                        }`}
+                      >
+                        1. Needs Work
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => recordConfidence(2)}
+                        className={`py-3 px-4 rounded-xl text-xs font-bold transition-all ${
+                          practiceConfidence[kit.flashcards[currentCardIndex]?.id] === 2
+                            ? 'bg-amber-500 text-black ring-2 ring-amber-400'
+                            : 'text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20'
+                        }`}
+                      >
+                        2. Getting There
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => recordConfidence(3)}
+                        className={`py-3 px-4 rounded-xl text-xs font-bold transition-all ${
+                          practiceConfidence[kit.flashcards[currentCardIndex]?.id] === 3
+                            ? 'bg-emerald-500 text-white ring-2 ring-emerald-400'
+                            : 'text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20'
+                        }`}
+                      >
+                        3. Mastered
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card Navigation */}
+                  <div className="flex items-center justify-between pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentCardIndex > 0) {
+                          setIsFlipped(false);
+                          setCurrentCardIndex(prev => prev - 1);
+                        }
+                      }}
+                      disabled={currentCardIndex === 0}
+                      className="px-4 py-2 rounded-lg text-xs font-medium text-gray-300 hover:bg-white/5 disabled:opacity-30 flex items-center gap-1"
+                    >
+                      &larr; Previous Card
+                    </button>
+
+                    {currentCardIndex === totalCards - 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowPracticeSummary(true)}
+                        className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-500 hover:opacity-95 shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5"
+                      >
+                        <span>View Session Summary</span>
+                        <Trophy className="w-3.5 h-3.5 text-amber-300" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (currentCardIndex < totalCards - 1) {
+                            setIsFlipped(false);
+                            setCurrentCardIndex(prev => prev + 1);
+                          }
+                        }}
+                        className="px-4 py-2 rounded-lg text-xs font-medium text-gray-300 hover:bg-white/5 flex items-center gap-1"
+                      >
+                        Next Card &rarr;
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            ) : (
+              <div className="p-12 text-center text-gray-400 glass-panel rounded-2xl">
+                No flashcards generated for this kit.
               </div>
-            </div>
-          ) : (
-            <div className="p-12 text-center text-gray-400 glass-panel rounded-2xl">
-              No flashcards generated for this kit.
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })()}
 
       {/* TAB 4: CREATIVE FEATURE - AI MOCK INTERVIEW SIMULATOR */}
       {activeTab === 'mock' && (
