@@ -20,8 +20,11 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
+import { useAuth } from '@/lib/auth-context';
+
 export default function Dashboard() {
   const router = useRouter();
+  const { user, setShowAuthModal, setAuthMode } = useAuth();
 
   // Form states
   const [jd, setJd] = useState('');
@@ -42,7 +45,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadKits();
-  }, []);
+  }, [user]);
 
   async function loadKits() {
     try {
