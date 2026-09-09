@@ -92,10 +92,8 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      const res = await register(email, password, name);
-      if (res.requiresVerification) {
-        setSuccessMessage(`A verification code has been dispatched to ${email}.`);
-      }
+      await register(email, password, name);
+      setSuccessMessage(`Your account has been created successfully! Welcome, ${name || email.split('@')[0]}. Entering platform...`);
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
     } finally {
@@ -247,9 +245,12 @@ export default function LoginScreen() {
 
             {/* Success Message */}
             {successMessage && (
-              <div className="mb-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                <span>{successMessage}</span>
+              <div className="mb-4 p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-sm flex items-start gap-3 shadow-lg shadow-emerald-500/10 animate-in fade-in duration-200">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-white text-sm">Account Created Successfully!</p>
+                  <p className="text-xs text-emerald-200/90 mt-0.5">{successMessage}</p>
+                </div>
               </div>
             )}
 
@@ -364,7 +365,7 @@ export default function LoginScreen() {
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
-                  <p className="text-[11px] text-gray-500">We will send a 6-digit email verification code</p>
+                  <p className="text-[11px] text-gray-500">Your account will be created immediately with private kit access</p>
                 </div>
 
                 <div className="space-y-1">
@@ -401,12 +402,12 @@ export default function LoginScreen() {
                   {loading ? (
                     <>
                       <RotateCcw className="w-4 h-4 animate-spin" />
-                      Creating Account & Sending Email...
+                      Creating Account...
                     </>
                   ) : (
                     <>
-                      <Send className="w-4 h-4" />
-                      <span>Create Account & Send Verification Email</span>
+                      <UserPlus className="w-4 h-4" />
+                      <span>Create Account</span>
                     </>
                   )}
                 </button>

@@ -74,21 +74,17 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     passwordHash: Buffer.from(password).toString('base64'),
     name: name || email.split('@')[0],
     createdAt: new Date().toISOString(),
-    isVerified: false,
-    verificationCode,
-    verificationCodeExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    isVerified: true,
   };
 
   await storage.saveUser(user);
 
-  // Dispatch verification email
-  await sendVerificationEmail(email, verificationCode, user.name);
+  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
   return res.status(201).json({
-    message: 'Verification code sent to your email.',
-    requiresVerification: true,
-    email: user.email,
-    previewCode: verificationCode,
+    message: 'Account created successfully!',
+    token,
+    user: { id: user.id, email: user.email, name: user.name, isVerified: true },
   });
 });
 

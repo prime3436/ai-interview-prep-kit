@@ -75,12 +75,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function register(email: string, pass: string, name?: string) {
     const res = await api.register({ email, password: pass, name });
-    if (res.requiresVerification) {
-      setPendingVerificationEmail(email);
-      if (res.previewCode) {
-        setVerificationPreviewCode(res.previewCode);
-      }
-      setAuthMode('verify');
+    if (res.token && res.user) {
+      setToken(res.token);
+      setUser(res.user);
+      localStorage.setItem('trao_auth_token', res.token);
+      localStorage.setItem('trao_auth_user', JSON.stringify(res.user));
+      setShowAuthModal(false);
     }
     return res;
   }

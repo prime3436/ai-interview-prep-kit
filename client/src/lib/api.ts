@@ -173,11 +173,17 @@ export async function fetchApi<T = any>(endpoint: string, options: RequestInit =
 
     if (endpoint === '/auth/register') {
       const body = options.body ? JSON.parse(options.body as string) : {};
+      const user = {
+        id: 'u_' + Date.now(),
+        email: body.email || 'candidate@interviewprep.ai',
+        name: body.name || (body.email ? body.email.split('@')[0] : 'Candidate'),
+        isVerified: true,
+      };
+      const token = 'token_' + Date.now();
       return {
-        message: 'Verification code sent to your email.',
-        requiresVerification: true,
-        email: body.email,
-        previewCode: '849201',
+        message: 'Account created successfully!',
+        token,
+        user,
       } as any;
     }
 
