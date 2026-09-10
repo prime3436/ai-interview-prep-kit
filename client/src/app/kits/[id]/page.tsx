@@ -835,41 +835,71 @@ export default function KitDetailPage() {
               </div>
             </div>
 
-            {/* Adjust Days Slider */}
-            <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-200 whitespace-nowrap">
-                  Adjust Days Plan:
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-primary-500/20 text-primary-300 border border-primary-500/30">
-                  {sliderDays} {sliderDays === 1 ? 'day' : 'days'}
-                </span>
+            {/* Adjust Days Slider & Quick Presets */}
+            <div className="pt-3 border-t border-white/10 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-gray-200 whitespace-nowrap">
+                    Adjust Days Plan:
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-primary-500/20 text-primary-300 border border-primary-500/30">
+                    {sliderDays} {sliderDays === 1 ? 'day' : 'days'}
+                  </span>
+                </div>
+
+                {/* Quick 1-Click Day Presets */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[3, 5, 7, 14].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => {
+                        setSliderDays(d);
+                        handleRegenerateSchedule(d);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all ${
+                        sliderDays === d
+                          ? 'bg-accent-teal text-black font-bold shadow-sm'
+                          : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
+                      }`}
+                    >
+                      {d}d
+                    </button>
+                  ))}
+                </div>
+
+                {sliderDays !== (kit.schedule?.days_available || 5) && (
+                  <button
+                    type="button"
+                    onClick={() => handleRegenerateSchedule(sliderDays)}
+                    disabled={isRegenerating}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-primary-600 via-primary-500 to-accent-teal hover:opacity-90 text-white shadow-sm transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 animate-in fade-in"
+                  >
+                    <RotateCcw className={`w-3.5 h-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />
+                    <span>Apply {sliderDays}d Plan</span>
+                  </button>
+                )}
               </div>
 
-              <div className="flex-1 max-w-md flex items-center gap-3">
-                <span className="text-[11px] text-gray-400 font-mono">1d</span>
+              {/* Slider Track (Pure Dark Theme, No Lag while dragging) */}
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] text-gray-500 font-mono">1d</span>
                 <input
                   type="range"
                   min="1"
                   max="30"
                   value={sliderDays}
                   onChange={e => setSliderDays(parseInt(e.target.value, 10))}
-                  onMouseUp={() => handleRegenerateSchedule(sliderDays)}
-                  onTouchEnd={() => handleRegenerateSchedule(sliderDays)}
-                  className="w-full accent-primary-500 h-2 bg-white/15 rounded-lg cursor-pointer appearance-none focus:outline-none"
+                  onPointerUp={e => {
+                    const targetVal = parseInt((e.target as HTMLInputElement).value, 10);
+                    if (targetVal !== (kit.schedule?.days_available || 5)) {
+                      handleRegenerateSchedule(targetVal);
+                    }
+                  }}
+                  className="custom-range-slider flex-1"
                 />
-                <span className="text-[11px] text-gray-400 font-mono">30d</span>
+                <span className="text-[11px] text-gray-500 font-mono">30d</span>
               </div>
-
-              <button
-                type="button"
-                onClick={() => handleRegenerateSchedule(sliderDays)}
-                disabled={isRegenerating}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-primary-600 via-primary-500 to-accent-teal hover:opacity-90 text-white shadow-sm transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-              >
-                <RotateCcw className={`w-3.5 h-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />
-                <span>Apply {sliderDays}d Plan</span>
-              </button>
             </div>
           </div>
 
