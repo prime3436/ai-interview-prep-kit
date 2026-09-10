@@ -17,67 +17,6 @@ function saveLocalKits(kits: any[]) {
   } catch {}
 }
 
-function generateFallbackKit(jd: string, company_url: string, days: number): any {
-  const companyName = company_url.replace(/https?:\/\//, '').split('/')[0].replace('www.', '').split('.')[0];
-  const companyCapitalized = companyName.charAt(0).toUpperCase() + companyName.slice(1);
-  const now = new Date().toISOString();
-
-  // Extract lines as requirements
-  const lines = jd.split('\n').map(l => l.trim()).filter(l => l.length > 10 && !l.toLowerCase().includes('responsibilit') && !l.toLowerCase().includes('requirem'));
-  const requirements = (lines.length > 0 ? lines.slice(0, 5) : [
-    '5+ years experience designing distributed backend systems',
-    'Demonstrated expertise in TypeScript, Node.js, and cloud infrastructure',
-    'Experience mentoring junior engineers and leading system architecture',
-  ]).map((text, idx) => ({
-    id: `r${idx + 1}`,
-    text: text.replace(/^[-*•\d.)\s]+/, ''),
-    category: idx % 2 === 0 ? 'technical' : 'behavioural',
-    is_critical: idx < 3,
-  }));
-
-  const questions = [
-    {
-      id: 'q1',
-      requirement_ids: [requirements[0]?.id || 'r1'],
-      category: 'system-design',
-      prompt: `Design a high-throughput, fault-tolerant service tailored for ${companyCapitalized}'s architecture. Walk through data flow, bottlenecks, and failover mechanisms.`,
-      answer_outline: '1. Architecture & API boundaries\n2. Partitioning, caching, and database schemas\n3. Observability, metrics, and disaster recovery',
-      difficulty: 3,
-    },
-    {
-      id: 'q2',
-      requirement_ids: [requirements[0]?.id || 'r1'],
-      category: 'technical',
-      prompt: `How have you designed and operated scalable production services using TypeScript and Node.js? What were the hardest trade-offs you encountered?`,
-      answer_outline: '1. Event loop optimization & async workers\n2. Memory profiling & leak resolution\n3. Production telemetry and distributed tracing',
-      difficulty: 3,
-    },
-    {
-      id: 'q3',
-      requirement_ids: [requirements[1]?.id || 'r2'],
-      category: 'technical',
-      prompt: `Explain how you implement end-to-end type safety, validation pipelines, and resilient error recovery across microservices.`,
-      answer_outline: '1. Shared contract schemas (Zod/OpenAPI)\n2. Safe deserialization & boundary handling\n3. Circuit breakers & graceful degradation',
-      difficulty: 2,
-    },
-    {
-      id: 'q4',
-      requirement_ids: [requirements[2]?.id || 'r1'],
-      category: 'behavioural',
-      prompt: `Describe a scenario where you had to lead a contentious architectural decision across engineering and product teams. How did you resolve the deadlock?`,
-      answer_outline: '1. Context & competing priorities\n2. Written RFC & benchmarked data\n3. Alignment, rollout, and post-mortem retrospective',
-      difficulty: 2,
-    },
-    {
-      id: 'q5',
-      requirement_ids: [requirements[0]?.id || 'r1'],
-      category: 'company-fit',
-      prompt: `What excites you about engineering challenges at ${companyCapitalized}, and how do your technical experiences align with their engineering culture?`,
-      answer_outline: `1. Understanding of ${companyCapitalized}'s market footprint\n2. Passion for quality, velocity, and reliability\n3. Personal contributions to long-term architectural stability`,
-      difficulty: 1,
-    },
-  ];
-
 function buildScheduleDays(questions: any[], daysCount: number) {
   const count = Math.max(1, Math.min(60, daysCount || 5));
   const focuses = [
@@ -146,6 +85,67 @@ function buildScheduleDays(questions: any[], daysCount: number) {
 
   return days;
 }
+
+function generateFallbackKit(jd: string, company_url: string, days: number): any {
+  const companyName = company_url.replace(/https?:\/\//, '').split('/')[0].replace('www.', '').split('.')[0];
+  const companyCapitalized = companyName.charAt(0).toUpperCase() + companyName.slice(1);
+  const now = new Date().toISOString();
+
+  // Extract lines as requirements
+  const lines = jd.split('\n').map(l => l.trim()).filter(l => l.length > 10 && !l.toLowerCase().includes('responsibilit') && !l.toLowerCase().includes('requirem'));
+  const requirements = (lines.length > 0 ? lines.slice(0, 5) : [
+    '5+ years experience designing distributed backend systems',
+    'Demonstrated expertise in TypeScript, Node.js, and cloud infrastructure',
+    'Experience mentoring junior engineers and leading system architecture',
+  ]).map((text, idx) => ({
+    id: `r${idx + 1}`,
+    text: text.replace(/^[-*•\d.)\s]+/, ''),
+    category: idx % 2 === 0 ? 'technical' : 'behavioural',
+    is_critical: idx < 3,
+  }));
+
+  const questions = [
+    {
+      id: 'q1',
+      requirement_ids: [requirements[0]?.id || 'r1'],
+      category: 'system-design',
+      prompt: `Design a high-throughput, fault-tolerant service tailored for ${companyCapitalized}'s architecture. Walk through data flow, bottlenecks, and failover mechanisms.`,
+      answer_outline: '1. Architecture & API boundaries\n2. Partitioning, caching, and database schemas\n3. Observability, metrics, and disaster recovery',
+      difficulty: 3,
+    },
+    {
+      id: 'q2',
+      requirement_ids: [requirements[0]?.id || 'r1'],
+      category: 'technical',
+      prompt: `How have you designed and operated scalable production services using TypeScript and Node.js? What were the hardest trade-offs you encountered?`,
+      answer_outline: '1. Event loop optimization & async workers\n2. Memory profiling & leak resolution\n3. Production telemetry and distributed tracing',
+      difficulty: 3,
+    },
+    {
+      id: 'q3',
+      requirement_ids: [requirements[1]?.id || 'r2'],
+      category: 'technical',
+      prompt: `Explain how you implement end-to-end type safety, validation pipelines, and resilient error recovery across microservices.`,
+      answer_outline: '1. Shared contract schemas (Zod/OpenAPI)\n2. Safe deserialization & boundary handling\n3. Circuit breakers & graceful degradation',
+      difficulty: 2,
+    },
+    {
+      id: 'q4',
+      requirement_ids: [requirements[2]?.id || 'r1'],
+      category: 'behavioural',
+      prompt: `Describe a scenario where you had to lead a contentious architectural decision across engineering and product teams. How did you resolve the deadlock?`,
+      answer_outline: '1. Context & competing priorities\n2. Written RFC & benchmarked data\n3. Alignment, rollout, and post-mortem retrospective',
+      difficulty: 2,
+    },
+    {
+      id: 'q5',
+      requirement_ids: [requirements[0]?.id || 'r1'],
+      category: 'company-fit',
+      prompt: `What excites you about engineering challenges at ${companyCapitalized}, and how do your technical experiences align with their engineering culture?`,
+      answer_outline: `1. Understanding of ${companyCapitalized}'s market footprint\n2. Passion for quality, velocity, and reliability\n3. Personal contributions to long-term architectural stability`,
+      difficulty: 1,
+    },
+  ];
 
   // Distribute questions into days
   const daysCount = Math.max(1, days || 5);
@@ -347,7 +347,7 @@ export async function fetchApi<T = any>(endpoint: string, options: RequestInit =
 export const api = {
   // Auth
   register: (data: { email: string; password: string; name?: string }) =>
-    fetchApi<{ message: string; requiresVerification: boolean; email: string; previewCode?: string }>(
+    fetchApi<{ message: string; requiresVerification?: boolean; email?: string; previewCode?: string; token?: string; user?: any }>(
       '/auth/register',
       { method: 'POST', body: JSON.stringify(data) }
     ),

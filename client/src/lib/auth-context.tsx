@@ -15,7 +15,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<void>;
-  register: (email: string, pass: string, name?: string) => Promise<{ requiresVerification: boolean; email: string; previewCode?: string }>;
+  register: (email: string, pass: string, name?: string) => Promise<any>;
   verifyEmail: (email: string, code: string) => Promise<void>;
   resendCode: (email: string) => Promise<string | undefined>;
   logout: () => void;

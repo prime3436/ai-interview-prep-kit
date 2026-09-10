@@ -17,6 +17,7 @@ import {
   Calendar,
   Layers,
   Bot,
+  UserPlus,
 } from 'lucide-react';
 
 export default function LoginScreen() {
