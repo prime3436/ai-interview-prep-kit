@@ -76,6 +76,13 @@ export default function KitDetailPage() {
   const [activeTimerDay, setActiveTimerDay] = useState<number | null>(null);
   const [timerRemaining, setTimerRemaining] = useState<number>(25 * 60);
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [sliderDays, setSliderDays] = useState<number>(5);
+
+  useEffect(() => {
+    if (kit?.schedule?.days_available) {
+      setSliderDays(kit.schedule.days_available);
+    }
+  }, [kit?.schedule?.days_available]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && kitId) {
@@ -752,9 +759,9 @@ export default function KitDetailPage() {
                   {kit.schedule?.days?.length || 0} Total Days
                 </span>
                 <button
-                  onClick={() => handleRegenerateSchedule()}
+                  onClick={() => handleRegenerateSchedule(sliderDays)}
                   disabled={isRegenerating}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-1.5 disabled:opacity-50 transition-colors"
                 >
                   <RotateCcw className={`w-3.5 h-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />
                   <span>Re-allocate</span>
@@ -829,18 +836,40 @@ export default function KitDetailPage() {
             </div>
 
             {/* Adjust Days Slider */}
-            <div className="pt-2 border-t border-white/10 flex items-center gap-4">
-              <span className="text-xs text-gray-300 whitespace-nowrap">
-                Adjust Days Plan ({kit.schedule?.days_available || 5}d):
-              </span>
-              <input
-                type="range"
-                min="1"
-                max="30"
-                value={kit.schedule?.days_available || 5}
-                onChange={e => handleRegenerateSchedule(parseInt(e.target.value, 10))}
-                className="w-full accent-primary-500 h-2 bg-white/10 rounded-lg cursor-pointer"
-              />
+            <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-gray-200 whitespace-nowrap">
+                  Adjust Days Plan:
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-primary-500/20 text-primary-300 border border-primary-500/30">
+                  {sliderDays} {sliderDays === 1 ? 'day' : 'days'}
+                </span>
+              </div>
+
+              <div className="flex-1 max-w-md flex items-center gap-3">
+                <span className="text-[11px] text-gray-400 font-mono">1d</span>
+                <input
+                  type="range"
+                  min="1"
+                  max="30"
+                  value={sliderDays}
+                  onChange={e => setSliderDays(parseInt(e.target.value, 10))}
+                  onMouseUp={() => handleRegenerateSchedule(sliderDays)}
+                  onTouchEnd={() => handleRegenerateSchedule(sliderDays)}
+                  className="w-full accent-primary-500 h-2 bg-white/15 rounded-lg cursor-pointer appearance-none focus:outline-none"
+                />
+                <span className="text-[11px] text-gray-400 font-mono">30d</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleRegenerateSchedule(sliderDays)}
+                disabled={isRegenerating}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-primary-600 via-primary-500 to-accent-teal hover:opacity-90 text-white shadow-sm transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />
+                <span>Apply {sliderDays}d Plan</span>
+              </button>
             </div>
           </div>
 
@@ -909,156 +938,200 @@ export default function KitDetailPage() {
           )}
 
           {/* Day Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {kit.schedule?.days
-              ?.filter((d: any) => {
-                const isDone = completedDays.includes(d.day);
-                if (scheduleFilter === 'completed') return isDone;
-                if (scheduleFilter === 'remaining') return !isDone;
-                return true;
-              })
-              .map((d: any) => {
-                const isDone = completedDays.includes(d.day);
-                const isTimerOnThisDay = activeTimerDay === d.day;
+          {(() => {
+            const filteredDays = (kit.schedule?.days || []).filter((d: any) => {
+              const isDone = completedDays.includes(d.day);
+              if (scheduleFilter === 'completed') return isDone;
+              if (scheduleFilter === 'remaining') return !isDone;
+              return true;
+            });
 
-                return (
-                  <div
-                    key={d.day}
-                    className={`glass-panel p-6 rounded-2xl border transition-all space-y-4 flex flex-col justify-between shadow-lg ${
-                      isDone
-                        ? 'border-emerald-500/40 bg-emerald-950/15'
-                        : isTimerOnThisDay
-                        ? 'border-accent-teal ring-2 ring-accent-teal/30'
-                        : 'hover:border-primary-500/40'
-                    }`}
+            if (filteredDays.length === 0) {
+              return (
+                <div className="glass-panel p-12 text-center rounded-2xl border border-dashed border-white/15 space-y-3">
+                  <CheckCircle2 className="w-10 h-10 text-accent-teal mx-auto opacity-80 animate-pulse" />
+                  <h3 className="text-base font-bold text-white">
+                    {scheduleFilter === 'completed'
+                      ? 'No days completed yet'
+                      : 'All scheduled days completed! 🎉'}
+                  </h3>
+                  <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
+                    {scheduleFilter === 'completed'
+                      ? 'Click "Mark Done" on any day card as you finish your study sessions to track your preparation.'
+                      : 'Great job! You have finished all days in your interview study schedule. You can reset or re-allocate your schedule anytime.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleFilter('all')}
+                    className="mt-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10"
                   >
-                    <div className="space-y-3">
-                      {/* Card Header with Mark Done Toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold font-mono ${
-                              isDone
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-primary-500/20 text-primary-300'
-                            }`}
-                          >
-                            DAY {d.day}
+                    View All Days ({kit.schedule?.days?.length || 0})
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredDays.map((d: any) => {
+                  const isDone = completedDays.includes(d.day);
+                  const isTimerOnThisDay = activeTimerDay === d.day;
+
+                  return (
+                    <div
+                      key={d.day}
+                      className={`glass-panel p-6 rounded-2xl border transition-all space-y-4 flex flex-col justify-between shadow-lg ${
+                        isDone
+                          ? 'border-emerald-500/40 bg-emerald-950/15'
+                          : isTimerOnThisDay
+                          ? 'border-accent-teal ring-2 ring-accent-teal/30'
+                          : 'hover:border-primary-500/40'
+                      }`}
+                    >
+                      <div className="space-y-3">
+                        {/* Card Header with Mark Done Toggle */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-bold font-mono ${
+                                isDone
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                  : 'bg-primary-500/20 text-primary-300'
+                              }`}
+                            >
+                              DAY {d.day}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={e => toggleDayCompleted(d.day, e)}
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all flex items-center gap-1.5 ${
+                                isDone
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                  : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10'
+                              }`}
+                            >
+                              {isDone ? (
+                                <>
+                                  <Check className="w-3 h-3 text-emerald-400" />
+                                  <span>Completed</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Square className="w-3 h-3" />
+                                  <span>Mark Done</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          <span className="text-xs font-mono text-gray-400 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-accent-teal" /> {d.minutes} mins
                           </span>
-                          <button
-                            type="button"
-                            onClick={e => toggleDayCompleted(d.day, e)}
-                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all flex items-center gap-1.5 ${
-                              isDone
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                                : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10'
-                            }`}
-                          >
-                            {isDone ? (
-                              <>
-                                <Check className="w-3 h-3 text-emerald-400" />
-                                <span>Completed</span>
-                              </>
-                            ) : (
-                              <>
-                                <Square className="w-3 h-3" />
-                                <span>Mark Done</span>
-                              </>
-                            )}
-                          </button>
                         </div>
 
-                        <span className="text-xs font-mono text-gray-400 flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-accent-teal" /> {d.minutes} mins
-                        </span>
+                        <h4
+                          className={`font-bold text-base line-clamp-2 ${
+                            isDone ? 'text-gray-300 line-through opacity-85' : 'text-white'
+                          }`}
+                        >
+                          {d.focus}
+                        </h4>
                       </div>
 
-                      <h4
-                        className={`font-bold text-base line-clamp-2 ${
-                          isDone ? 'text-gray-300 line-through opacity-85' : 'text-white'
-                        }`}
-                      >
-                        {d.focus}
-                      </h4>
-                    </div>
+                      {/* Assigned Questions or Review Focus */}
+                      <div className="space-y-2 pt-3 border-t border-white/10 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[11px] font-semibold text-gray-400 block uppercase tracking-wider">
+                              Assigned Questions ({d.question_ids?.length || 0}):
+                            </span>
+                            {d.question_ids?.length > 0 && (
+                              <span className="text-[10px] text-accent-teal/80">Click card to open</span>
+                            )}
+                          </div>
 
-                    {/* Assigned Questions (Clickable List) */}
-                    <div className="space-y-2 pt-3 border-t border-white/10">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-gray-400 block uppercase tracking-wider">
-                          Assigned Questions ({d.question_ids?.length || 0}):
-                        </span>
-                        <span className="text-[10px] text-accent-teal/80">Click card to open</span>
-                      </div>
+                          {d.question_ids?.length > 0 ? (
+                            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                              {d.question_ids.map((qid: string) => {
+                                const q = kit.questions?.find((x: any) => x.id === qid);
+                                return (
+                                  <div
+                                    key={qid}
+                                    onClick={() => setSelectedScheduleQuestion(q)}
+                                    className="p-2.5 rounded-xl bg-black/50 border border-white/10 hover:border-primary-500/60 hover:bg-white/10 transition-all cursor-pointer group shadow-sm flex flex-col justify-between space-y-1.5"
+                                    title="Click to inspect question outline & practice"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono text-[11px] text-accent-teal font-bold group-hover:underline">
+                                          {qid}
+                                        </span>
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300 capitalize font-medium">
+                                          {q?.category || 'tech'}
+                                        </span>
+                                        <span className="text-[10px] text-amber-400" title={`Difficulty ${q?.difficulty || 1}/3`}>
+                                          {'⭐'.repeat(q?.difficulty || 1)}
+                                        </span>
+                                      </div>
+                                      <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-primary-300 transition-colors" />
+                                    </div>
 
-                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                        {d.question_ids?.map((qid: string) => {
-                          const q = kit.questions.find((x: any) => x.id === qid);
-                          return (
-                            <div
-                              key={qid}
-                              onClick={() => setSelectedScheduleQuestion(q)}
-                              className="p-2.5 rounded-xl bg-black/50 border border-white/10 hover:border-primary-500/60 hover:bg-white/10 transition-all cursor-pointer group shadow-sm flex flex-col justify-between space-y-1.5"
-                              title="Click to inspect question outline & practice"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono text-[11px] text-accent-teal font-bold group-hover:underline">
-                                    {qid}
-                                  </span>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300 capitalize font-medium">
-                                    {q?.category || 'tech'}
-                                  </span>
-                                  <span className="text-[10px] text-amber-400" title={`Difficulty ${q?.difficulty || 1}/3`}>
-                                    {'⭐'.repeat(q?.difficulty || 1)}
-                                  </span>
-                                </div>
-                                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-primary-300 transition-colors" />
-                              </div>
+                                    <p className="line-clamp-2 text-gray-200 text-xs font-medium group-hover:text-white leading-relaxed">
+                                      {q?.prompt || 'Question prompt'}
+                                    </p>
 
-                              <p className="line-clamp-2 text-gray-200 text-xs font-medium group-hover:text-white leading-relaxed">
-                                {q?.prompt || 'Question prompt'}
-                              </p>
-
-                              <div className="flex items-center justify-between pt-1 text-[10px] text-gray-500 group-hover:text-primary-300 font-medium">
-                                <span>Covers: {q?.requirement_ids?.join(', ') || 'General'}</span>
-                                <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-                                  Inspect & Practise →
-                                </span>
-                              </div>
+                                    <div className="flex items-center justify-between pt-1 text-[10px] text-gray-500 group-hover:text-primary-300 font-medium">
+                                      <span>Covers: {q?.requirement_ids?.join(', ') || 'General'}</span>
+                                      <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                                        Inspect & Practise →
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                          );
-                        })}
+                          ) : (
+                            <div className="p-3.5 rounded-xl bg-black/40 border border-dashed border-white/10 text-center space-y-1 my-1">
+                              <Award className="w-5 h-5 text-accent-teal mx-auto opacity-75" />
+                              <p className="text-xs font-bold text-white">Review & Mock Day</p>
+                              <p className="text-[11px] text-gray-400 leading-relaxed">
+                                Drill weak flashcards and practice verbal answers with AI mock rounds.
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Day Action Buttons */}
-                    <div className="pt-3 border-t border-white/10 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={e => startStudyTimer(d.day, d.minutes || 25, e)}
-                        className="flex-1 py-2 px-2.5 rounded-xl text-xs font-medium text-gray-200 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <Play className="w-3.5 h-3.5 text-accent-teal" />
-                        <span>Start Session</span>
-                      </button>
-
-                      {d.question_ids?.length > 0 && (
+                      {/* Day Action Buttons */}
+                      <div className="pt-3 border-t border-white/10 flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => jumpToMockFromSchedule(d.question_ids[0])}
+                          onClick={e => startStudyTimer(d.day, d.minutes || 25, e)}
+                          className="flex-1 py-2 px-2.5 rounded-xl text-xs font-medium text-gray-200 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <Play className="w-3.5 h-3.5 text-accent-teal" />
+                          <span>Start Session</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const targetQId = d.question_ids?.length > 0 ? d.question_ids[0] : (kit.questions?.[0]?.id || 'q1');
+                            jumpToMockFromSchedule(targetQId);
+                          }}
                           className="flex-1 py-2 px-2.5 rounded-xl text-xs font-medium text-primary-300 bg-primary-500/10 hover:bg-primary-500/20 border border-primary-500/20 transition-colors flex items-center justify-center gap-1.5"
-                          title="Launch AI Mock Interview for this day's questions"
+                          title="Launch AI Mock Interview"
                         >
                           <MessageSquare className="w-3.5 h-3.5 text-primary-400" />
                           <span>Mock Interview</span>
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-          </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* Interactive Question Detail & Practice Modal */}
           {selectedScheduleQuestion && (

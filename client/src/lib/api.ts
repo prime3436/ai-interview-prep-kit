@@ -78,18 +78,78 @@ function generateFallbackKit(jd: string, company_url: string, days: number): any
     },
   ];
 
-  // Distribute questions into days
-  const dayCards = [];
-  const daysCount = Math.max(1, days || 5);
-  for (let i = 1; i <= daysCount; i++) {
-    const qIds = i === 1 ? ['q1', 'q2'] : i === 2 ? ['q3'] : i === 3 ? ['q4'] : ['q5'];
-    dayCards.push({
+function buildScheduleDays(questions: any[], daysCount: number) {
+  const count = Math.max(1, Math.min(60, daysCount || 5));
+  const focuses = [
+    'Core System Architecture & High-Priority Technical Foundations',
+    'Deep Technical Implementation & Production Scalability',
+    'Cross-Functional Deadlocks & Behavioral Scenarios',
+    'Company Engineering Culture, Values & Role Fit',
+    'Comprehensive Final Polish, Weak-Spots & Mock Interview Simulation',
+  ];
+
+  const days = [];
+  const qList = questions && questions.length > 0 ? questions : [];
+
+  if (count === 1) {
+    days.push({
+      day: 1,
+      focus: 'Intensive Full-Spectrum Interview Preparation Sprint',
+      minutes: 60,
+      question_ids: qList.map(q => q.id),
+    });
+    return days;
+  }
+
+  for (let i = 1; i <= count; i++) {
+    let qIds: string[] = [];
+    let focus = '';
+
+    if (count <= 5) {
+      if (i === 1) {
+        qIds = qList.slice(0, 2).map(q => q.id);
+        focus = focuses[0];
+      } else if (i === 2) {
+        qIds = qList.slice(2, 3).map(q => q.id);
+        focus = focuses[1];
+      } else if (i === 3) {
+        qIds = qList.slice(3, 4).map(q => q.id);
+        focus = focuses[2];
+      } else if (i === 4) {
+        qIds = qList.slice(4, 5).map(q => q.id);
+        focus = focuses[3];
+      } else {
+        qIds = qList.length > 0 ? [qList[0]?.id, qList[qList.length - 1]?.id].filter(Boolean) : [];
+        focus = focuses[4];
+      }
+    } else {
+      const qIndex = (i - 1) % (qList.length || 1);
+      if (i <= qList.length) {
+        qIds = [qList[qIndex]?.id].filter(Boolean);
+        focus = i === 1 ? focuses[0] : i === 2 ? focuses[1] : i === 3 ? focuses[2] : i === 4 ? focuses[3] : `Focused Technical Topic Review (Part ${i})`;
+      } else if (i === count) {
+        qIds = qList.slice(0, 2).map(q => q.id);
+        focus = focuses[4];
+      } else {
+        qIds = [qList[qIndex]?.id].filter(Boolean);
+        focus = `Spaced Repetition & Weak-Spot Flashcard Drill (Day ${i})`;
+      }
+    }
+
+    days.push({
       day: i,
-      focus: i === 1 ? 'Core System Design & High-Priority Technical Foundations' : i === 2 ? 'Deep Technical Implementation & Scalability' : i === 3 ? 'Architecture deadlocks & Cross-Functional Alignment' : 'Company Culture & Practice Mock Rounds',
+      focus: focus || `Day ${i} Focused Preparation`,
       minutes: 30,
       question_ids: qIds.filter(Boolean),
     });
   }
+
+  return days;
+}
+
+  // Distribute questions into days
+  const daysCount = Math.max(1, days || 5);
+  const dayCards = buildScheduleDays(questions, daysCount);
 
   const flashcards = questions.map((q, idx) => ({
     id: `f${idx + 1}`,
@@ -242,6 +302,15 @@ export async function fetchApi<T = any>(endpoint: string, options: RequestInit =
       const kits = getLocalKits();
       const kit = kits.find(k => k._id === id);
       if (kit) {
+        if (body.section === 'schedule') {
+          const newDays = body.days || kit.schedule?.days_available || 5;
+          kit.schedule = {
+            days_available: newDays,
+            days: buildScheduleDays(kit.questions, newDays),
+          };
+          saveLocalKits(kits);
+          return { kit, message: `Schedule re-allocated across ${newDays} days successfully!` } as any;
+        }
         return { kit, message: `Section "${body.section}" regenerated successfully!` } as any;
       }
     }
