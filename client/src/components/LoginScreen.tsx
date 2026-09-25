@@ -42,14 +42,12 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
-  // Switch to sign in
   function goToSignIn() {
     setAuthMode('login');
     setError(null);
     setSuccessMessage(null);
   }
 
-  // Switch to create account
   function goToRegister() {
     setAuthMode('register');
     setError(null);
@@ -76,7 +74,6 @@ export default function LoginScreen() {
     setError(null);
     setSuccessMessage(null);
 
-    // Password validation rules
     if (password.length < 8) {
       setError('Password must be at least 8 characters long.');
       return;
@@ -151,7 +148,7 @@ export default function LoginScreen() {
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-6 px-4">
       <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Left Side: Product Intro & Features */}
+        {}
         <div className="lg:col-span-6 space-y-6 text-left">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-primary-500/10 text-primary-400 border border-primary-500/20">
             <Sparkles className="w-4 h-4 text-accent-teal animate-pulse" />
@@ -205,10 +202,10 @@ export default function LoginScreen() {
           </div>
         </div>
 
-        {/* Right Side: Authentication Box */}
+        {}
         <div className="lg:col-span-6">
           <div className="glass-panel p-6 sm:p-8 rounded-2xl border border-white/15 shadow-2xl relative">
-            {/* Header Tabs (Login vs Register) */}
+            {}
             {authMode !== 'verify' && (
               <div className="flex border-b border-white/10 pb-3 mb-6">
                 <button
@@ -236,7 +233,7 @@ export default function LoginScreen() {
               </div>
             )}
 
-            {/* Error Message */}
+            {}
             {error && (
               <div className="mb-4 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2.5">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -244,7 +241,7 @@ export default function LoginScreen() {
               </div>
             )}
 
-            {/* Success Message */}
+            {}
             {successMessage && (
               <div className="mb-4 p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-sm flex items-start gap-3 shadow-lg shadow-emerald-500/10 animate-in fade-in duration-200">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
@@ -255,7 +252,7 @@ export default function LoginScreen() {
               </div>
             )}
 
-            {/* ================= MODE 1: SIGN IN ================= */}
+            {}
             {authMode === 'login' && (
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div className="space-y-1">
@@ -330,7 +327,7 @@ export default function LoginScreen() {
               </form>
             )}
 
-            {/* ================= MODE 2: CREATE ACCOUNT ================= */}
+            {}
             {authMode === 'register' && (
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
                 <div className="space-y-1">
@@ -422,7 +419,7 @@ export default function LoginScreen() {
               </form>
             )}
 
-            {/* ================= MODE 3: EMAIL VERIFICATION ================= */}
+            {}
             {authMode === 'verify' && (
               <form onSubmit={handleVerifySubmit} className="space-y-5">
                 <div className="text-center space-y-2">
@@ -438,7 +435,7 @@ export default function LoginScreen() {
                   </p>
                 </div>
 
-                {/* Instant Verification Code Preview Box for Reviewer & Demo */}
+                {}
                 {verificationPreviewCode && (
                   <div className="p-3.5 rounded-xl bg-primary-950/40 border border-primary-500/30 text-center space-y-1">
                     <span className="text-[11px] font-semibold text-accent-teal uppercase tracking-wider">
@@ -520,3 +517,4 @@ export default function LoginScreen() {
     </div>
   );
 }
+

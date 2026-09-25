@@ -27,11 +27,6 @@ export interface PipelineOptions {
   llm?: LLMClient;
 }
 
-/**
- * End-to-End Deliberate Pipeline Orchestrator (Sections 2, 3, 4, 5, 8)
- *
- * Used identically by both the Web Application and the Batch CLI runner.
- */
 export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit> {
   const { jd, companyUrl, days, allowLocal = true, onProgress, llm = defaultLLM } = options;
 
@@ -43,15 +38,12 @@ export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit>
 
   emit('input_received', 'Received job description and target company details', 5);
 
-  // 1. Deliberate Step: Extract requirements from JD
   emit('extracting_requirements', 'Extracting role requirements with zero-hallucination constraint...', 15);
   const role = await extractRoleAndRequirements(jd, llm);
 
-  // 2. Deliberate Step: Intelligent Company Crawl
   emit('crawling_company', `Crawling company site (${companyUrl}) and ranking links...`, 30);
   const crawl = await crawlCompanySite(companyUrl, allowLocal);
 
-  // Infer company name from title or URL hostname
   let companyName = 'Target Company';
   try {
     const urlObj = new URL(companyUrl);
@@ -64,10 +56,9 @@ export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit>
       }
     }
   } catch {
-    // default
+
   }
 
-  // 3. Deliberate Step: Synthesize Company Brief
   emit('searching_discussions', 'Synthesizing company brief and public interview context...', 45);
   const company_brief = await generateCompanyBrief(companyName, crawl.what_they_do_text, crawl.pages_used, llm);
 
@@ -79,17 +70,14 @@ export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit>
     sources: crawl.pages_used,
   };
 
-  // 4. Deliberate Step: Category-Specific Question Generation
   emit('generating_questions', 'Generating category-specific interview questions & outlines...', 60);
 
-  // Filter requirements by kind
   const techReqs = role.requirements.filter(r => r.kind === 'technical');
   const behavReqs = role.requirements.filter(r => r.kind === 'behavioural');
   const allReqs = role.requirements;
 
   let currentQId = 1;
 
-  // Technical questions
   const techQuestions = await generateCategoryQuestions(
     'technical',
     techReqs.length > 0 ? techReqs : allReqs.slice(0, 3),
@@ -99,7 +87,6 @@ export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit>
   );
   currentQId += techQuestions.length;
 
-  // Behavioural questions
   const behavQuestions = await generateCategoryQuestions(
     'behavioural',
     behavReqs.length > 0 ? behavReqs : allReqs.slice(0, 2),
@@ -109,7 +96,6 @@ export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit>
   );
   currentQId += behavQuestions.length;
 
-  // System Design questions (for senior/technical roles)
   const sysQuestions = await generateCategoryQuestions(
     'system-design',
     techReqs.slice(0, 2).length > 0 ? techReqs.slice(0, 2) : allReqs.slice(0, 1),
@@ -119,7 +105,6 @@ export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit>
   );
   currentQId += sysQuestions.length;
 
-  // Company Fit questions
   const fitQuestions = await generateCategoryQuestions(
     'company-fit',
     allReqs.slice(0, 2),
@@ -130,10 +115,8 @@ export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit>
 
   const initialQuestions = [...techQuestions, ...behavQuestions, ...sysQuestions, ...fitQuestions];
 
-  // 5. Flashcards
   const flashcards = await generateFlashcards(allReqs, context, llm);
 
-  // 6. Deliberate Step: Deterministic Coverage Check & Second Pass (Section 4)
   emit('checking_coverage', 'Performing deterministic code-based coverage gap analysis...', 75);
   const { questions, coverage } = await runCoveragePasses(role.requirements, initialQuestions, context, 2, llm);
 
@@ -141,7 +124,6 @@ export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit>
     emit('second_pass', `Executed Second Pass to cover missing requirement gaps (Pass ${coverage.passes})`, 85);
   }
 
-  // 7. Deliberate Step: Deterministic Arithmetic Schedule Allocation (Section 8)
   emit('allocating_schedule', 'Allocating preparation schedule with front-loaded priorities...', 92);
   const schedule = allocateSchedule(days, questions, role.requirements);
 
@@ -163,7 +145,6 @@ export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit>
     coverage,
   };
 
-  // 8. Strict Appendix A Validation
   const validation = validateKit(kit);
   if (!validation.valid) {
     console.warn('[Pipeline] Kit validation warnings:', validation.errors);
@@ -173,10 +154,6 @@ export async function runPrepKitPipeline(options: PipelineOptions): Promise<Kit>
   return kit;
 }
 
-/**
- * Selective Section Regeneration (Section 6 - The Builder)
- * Preserves user-edited, user-added, and pinned questions when a category is regenerated!
- */
 export async function regenerateQuestionCategory(
   kit: Kit,
   categoryToRegenerate: QuestionCategory,
@@ -190,27 +167,24 @@ export async function regenerateQuestionCategory(
     sources: kit.company_brief.sources,
   };
 
-  // 1. Separate questions: keep untouched other categories, AND keep edited/pinned/user_added in this category
   const preservedQuestions: Question[] = [];
   for (const q of kit.questions) {
     if (q.category !== categoryToRegenerate) {
       preservedQuestions.push(q);
     } else {
-      // In the target category: keep if user modified it or pinned it
+
       if (q._isPinned || q._origin === 'user_edited' || q._origin === 'user_added') {
         preservedQuestions.push(q);
       }
     }
   }
 
-  // 2. Identify requirements relevant for this category
   const targetReqs = kit.role.requirements.filter(r => {
     if (categoryToRegenerate === 'technical') return r.kind === 'technical';
     if (categoryToGenerateKind(categoryToRegenerate) === r.kind) return true;
     return true;
   });
 
-  // 3. Generate fresh replacements
   const nextId = Math.max(0, ...kit.questions.map(q => parseInt(q.id.replace(/\D/g, '') || '0', 10))) + 1;
   const newQuestions = await generateCategoryQuestions(
     categoryToRegenerate,
@@ -222,7 +196,6 @@ export async function regenerateQuestionCategory(
 
   const updatedQuestions = [...preservedQuestions, ...newQuestions];
 
-  // 4. Re-run coverage and re-allocate schedule to preserve referential integrity
   const { questions: finalQuestions, coverage } = await runCoveragePasses(
     kit.role.requirements,
     updatedQuestions,
@@ -247,9 +220,6 @@ function categoryToGenerateKind(cat: QuestionCategory): string {
   return 'domain';
 }
 
-/**
- * Regenerate Company Brief on its own without touching anything else
- */
 export async function regenerateBriefOnly(kit: Kit, llm: LLMClient = defaultLLM): Promise<Kit> {
   const newBrief = await generateCompanyBrief(
     kit.source.company,
@@ -264,9 +234,6 @@ export async function regenerateBriefOnly(kit: Kit, llm: LLMClient = defaultLLM)
   };
 }
 
-/**
- * Regenerate Schedule on its own (e.g. if user changes days available or reshuffled questions)
- */
 export function recalculateScheduleOnly(kit: Kit, newDays?: number): Kit {
   const days = newDays ?? kit.schedule.days_available;
   const schedule = allocateSchedule(days, kit.questions, kit.role.requirements);
@@ -275,3 +242,4 @@ export function recalculateScheduleOnly(kit: Kit, newDays?: number): Kit {
     schedule,
   };
 }
+

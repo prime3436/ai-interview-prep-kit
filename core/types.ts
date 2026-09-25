@@ -1,12 +1,9 @@
-/**
- * Exact data contract matching Appendix A and Appendix B from the Trao Engineering Assessment.
- */
 
 export type RequirementKind = 'technical' | 'behavioural' | 'domain';
 export type RequirementPriority = 'must' | 'nice';
 
 export interface Requirement {
-  id: string; // e.g. "r1"
+  id: string;
   text: string;
   kind: RequirementKind;
   priority: RequirementPriority;
@@ -25,7 +22,7 @@ export interface SourceInfo {
   role: string;
   location: string;
   jd_chars: number;
-  researched_at: string; // ISO string
+  researched_at: string;
   pages_used: string[];
 }
 
@@ -38,23 +35,23 @@ export interface CompanyBrief {
 export type QuestionCategory = 'technical' | 'behavioural' | 'system-design' | 'company-fit';
 
 export interface Question {
-  id: string; // e.g. "q1"
+  id: string;
   requirement_ids: string[];
   category: QuestionCategory;
   prompt: string;
   answer_outline: string;
   difficulty: 1 | 2 | 3;
-  // State preservation metadata (retained during editing and selective regeneration)
+
   _origin?: 'generated' | 'user_edited' | 'user_added';
   _isPinned?: boolean;
 }
 
 export interface Flashcard {
-  id: string; // e.g. "f1"
+  id: string;
   front: string;
   back: string;
   requirement_ids: string[];
-  // State preservation metadata
+
   _origin?: 'generated' | 'user_edited' | 'user_added';
   _isPinned?: boolean;
 }
@@ -63,7 +60,7 @@ export interface ScheduleDay {
   day: number;
   focus: string;
   question_ids: string[];
-  minutes: number; // integer
+  minutes: number;
 }
 
 export interface Schedule {
@@ -76,9 +73,6 @@ export interface CoverageInfo {
   passes: number;
 }
 
-/**
- * Appendix A - Exact Kit Structure
- */
 export interface Kit {
   source: SourceInfo;
   company_brief: CompanyBrief;
@@ -87,15 +81,12 @@ export interface Kit {
   flashcards: Flashcard[];
   schedule: Schedule;
   coverage: CoverageInfo;
-  _id?: string; // MongoDB or persistence ID
+  _id?: string;
   userId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-/**
- * Appendix B - Batch Input Case
- */
 export interface BatchCaseInput {
   id: string;
   jd: string;
@@ -115,21 +106,16 @@ export interface BatchCaseOutput {
   error: BatchCaseError | null;
 }
 
-/**
- * Appendix B - Batch Output File Structure
- */
 export interface BatchOutputFile {
-  version: string; // "1.0"
-  generated_at: string; // ISO string
+  version: string;
+  generated_at: string;
   kits: BatchCaseOutput[];
 }
 
-/**
- * Pipeline progress event for live UI feedback
- */
 export interface PipelineProgress {
   stage: 'input_received' | 'extracting_requirements' | 'crawling_company' | 'searching_discussions' | 'generating_questions' | 'checking_coverage' | 'second_pass' | 'allocating_schedule' | 'completed' | 'failed';
   message: string;
   progressPercent: number;
   details?: Record<string, any>;
 }
+

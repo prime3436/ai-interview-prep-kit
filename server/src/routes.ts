@@ -8,7 +8,6 @@ import { validateKit, validateBatchInput, cleanKitForExport } from '../../core/v
 
 const JWT_SECRET = process.env.JWT_SECRET || 'trao-interview-prep-jwt-secret-key-2026';
 
-// --- Auth Middleware ---
 export interface AuthRequest extends Request {
   user?: { id: string; email: string };
 }
@@ -16,7 +15,7 @@ export interface AuthRequest extends Request {
 export function requireAuth(req: AuthRequest, res: Response, next: () => void) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // For local ease-of-use or demo mode, support a default demo user if header is missing
+
     req.user = { id: 'user_demo_default', email: 'demo@trao.local' };
     return next();
   }
@@ -31,7 +30,6 @@ export function requireAuth(req: AuthRequest, res: Response, next: () => void) {
   }
 }
 
-// --- Auth Routes ---
 export const authRouter = Router();
 
 function validatePassword(password: string): { valid: boolean; message?: string } {
@@ -65,7 +63,6 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     return res.status(409).json({ error: 'An account with this email already exists.' });
   }
 
-  // Generate 6-digit verification code
   const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
   const user: UserRecord = {
@@ -112,7 +109,6 @@ authRouter.post('/verify-email', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid verification code. Please check your email and try again.' });
   }
 
-  // Mark as verified
   user.isVerified = true;
   delete user.verificationCode;
   delete user.verificationCodeExpiresAt;
@@ -165,7 +161,6 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     return res.status(401).json({ error: 'Invalid email or password.' });
   }
 
-  // Check email verification status
   if (user.isVerified === false) {
     return res.status(403).json({
       error: 'Please verify your email address before logging in.',
@@ -186,7 +181,6 @@ authRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   return res.json({ user: req.user });
 });
 
-// --- Kits Routes ---
 export const kitsRouter = Router();
 
 kitsRouter.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -229,7 +223,6 @@ kitsRouter.post('/generate', requireAuth, async (req: AuthRequest, res: Response
   }
 });
 
-// Save inline edits and updates to a kit (Builder updates)
 kitsRouter.put('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const existing = await storage.findKitById(req.params.id);
   if (!existing) {
@@ -248,8 +241,6 @@ kitsRouter.put('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   return res.json({ kit: saved });
 });
 
-// Selective Section Regeneration (Section 6)
-// Preserves user edits and pinned questions!
 kitsRouter.post('/:id/regenerate-section', requireAuth, async (req: AuthRequest, res: Response) => {
   const { section, days } = req.body;
   const kit = await storage.findKitById(req.params.id);
@@ -265,7 +256,7 @@ kitsRouter.post('/:id/regenerate-section', requireAuth, async (req: AuthRequest,
     } else if (section === 'schedule') {
       updatedKit = recalculateScheduleOnly(kit, days);
     } else if (['technical', 'behavioural', 'system-design', 'company-fit'].includes(section)) {
-      // Regenerate category while preserving user edited and pinned questions!
+
       updatedKit = await regenerateQuestionCategory(kit, section as QuestionCategory);
     } else {
       return res.status(400).json({ error: `Invalid section for regeneration: ${section}` });
@@ -286,7 +277,6 @@ kitsRouter.delete('/:id', requireAuth, async (req: AuthRequest, res: Response) =
   return res.json({ success: true });
 });
 
-// --- Practice Mode Routes (Section 7) ---
 export const practiceRouter = Router();
 
 practiceRouter.get('/:kitId', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -313,7 +303,6 @@ practiceRouter.post('/:kitId/record', requireAuth, async (req: AuthRequest, res:
   return res.json({ success: true, progress });
 });
 
-// --- Mock Interview AI Evaluator (Creative Feature) ---
 export const mockInterviewRouter = Router();
 
 mockInterviewRouter.post('/evaluate', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -366,7 +355,6 @@ OUTPUT STRICT JSON ONLY:
   }
 });
 
-// --- Batch Endpoint ---
 export const batchRouter = Router();
 
 batchRouter.post('/upload', requireAuth, async (req: Request, res: Response) => {
@@ -402,3 +390,4 @@ batchRouter.post('/upload', requireAuth, async (req: Request, res: Response) => 
     kits: results,
   });
 });
+

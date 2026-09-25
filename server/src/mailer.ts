@@ -16,7 +16,6 @@ export async function sendVerificationEmail(toEmail: string, code: string, name?
   console.log(`[AUTH NOTIFICATION] 6-Digit Code: ${code}`);
   console.log(`======================================================\n`);
 
-  // If real SMTP environment variables are present, dispatch real email
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
       const transporter = nodemailer.createTransport({
@@ -57,6 +56,6 @@ export async function sendVerificationEmail(toEmail: string, code: string, name?
     }
   }
 
-  // Simulated delivery for local dev / preview environments
   return { success: true, code };
 }
+

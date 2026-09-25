@@ -56,19 +56,16 @@ export default function KitDetailPage() {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [saveNotification, setSaveNotification] = useState<string | null>(null);
 
-  // Practice Mode state
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [practiceConfidence, setPracticeConfidence] = useState<Record<string, number>>({});
   const [showPracticeSummary, setShowPracticeSummary] = useState(false);
 
-  // Mock Interview state
   const [selectedMockQuestionId, setSelectedMockQuestionId] = useState<string>('');
   const [mockAnswerText, setMockAnswerText] = useState('');
   const [mockEvaluating, setMockEvaluating] = useState(false);
   const [mockFeedback, setMockFeedback] = useState<any | null>(null);
 
-  // Schedule interactive features & extras
   const [completedDays, setCompletedDays] = useState<number[]>([]);
   const [scheduleFilter, setScheduleFilter] = useState<'all' | 'remaining' | 'completed'>('all');
   const [selectedScheduleQuestion, setSelectedScheduleQuestion] = useState<any | null>(null);
@@ -202,7 +199,6 @@ export default function KitDetailPage() {
       console.warn('API getKit notice:', err.message);
     }
 
-    // Safety fallback: Check local storage or generate immediate recovery kit
     if (typeof window !== 'undefined') {
       try {
         const raw = localStorage.getItem('trao_client_kits');
@@ -236,8 +232,6 @@ export default function KitDetailPage() {
       setIsSaving(false);
     }
   }
-
-  // --- The Builder Actions (Section 6) ---
 
   function updateQuestion(index: number, field: string, value: any) {
     if (!kit) return;
@@ -329,15 +323,12 @@ export default function KitDetailPage() {
     }
   }
 
-  // --- Practice Mode Actions (Section 7) ---
-
   function recordConfidence(rating: number) {
     if (!kit || !kit.flashcards || kit.flashcards.length === 0) return;
     const currentCard = kit.flashcards[currentCardIndex];
     setPracticeConfidence(prev => ({ ...prev, [currentCard.id]: rating }));
     api.recordCardConfidence(kitId, currentCard.id, rating).catch(() => {});
 
-    // Advance to next card or trigger completion summary
     if (currentCardIndex < kit.flashcards.length - 1) {
       setIsFlipped(false);
       setCurrentCardIndex(prev => prev + 1);
@@ -379,7 +370,7 @@ export default function KitDetailPage() {
     const sorted = [...kit.flashcards].sort((a, b) => {
       const confA = practiceConfidence[a.id] || 0;
       const confB = practiceConfidence[b.id] || 0;
-      return confA - confB; // lowest confidence first
+      return confA - confB;
     });
     setKit({ ...kit, flashcards: sorted });
     setCurrentCardIndex(0);
@@ -388,8 +379,6 @@ export default function KitDetailPage() {
     setSaveNotification('Flashcards reordered: lowest confidence cards first!');
     setTimeout(() => setSaveNotification(null), 3000);
   }
-
-  // --- Mock Interview Action (Creative Feature) ---
 
   async function handleEvaluateMock() {
     if (!mockAnswerText.trim() || !selectedMockQuestionId || !kit) return;
@@ -440,7 +429,7 @@ export default function KitDetailPage() {
 
   return (
     <div className="space-y-8 pb-16">
-      {/* Top Breadcrumb & Metadata Header */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
         <div className="space-y-1">
           <Link href="/#my-kits-section" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors mb-2">
@@ -478,7 +467,7 @@ export default function KitDetailPage() {
         </div>
       </div>
 
-      {/* Main Tab Navigation */}
+      {}
       <div className="flex items-center gap-2 overflow-x-auto border-b border-white/10 pb-2">
         <button
           onClick={() => setActiveTab('builder')}
@@ -548,10 +537,10 @@ export default function KitDetailPage() {
         </button>
       </div>
 
-      {/* TAB 1: THE BUILDER (Section 6) */}
+      {}
       {activeTab === 'builder' && (
         <div className="space-y-6">
-          {/* Builder Controls Bar */}
+          {}
           <div className="glass-panel p-4 rounded-xl flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2 overflow-x-auto">
               {['all', 'technical', 'behavioural', 'system-design', 'company-fit'].map(cat => (
@@ -590,7 +579,7 @@ export default function KitDetailPage() {
             </div>
           </div>
 
-          {/* Notice explaining state preservation model */}
+          {}
           <div className="text-[11px] text-gray-400 bg-white/5 px-4 py-2.5 rounded-xl border border-white/10 flex items-center justify-between">
             <span>
               💡 <strong>State Preservation Matrix:</strong> Pinned items and manually edited prompts survive category regeneration.
@@ -600,7 +589,7 @@ export default function KitDetailPage() {
             </span>
           </div>
 
-          {/* Questions List */}
+          {}
           <div className="space-y-4">
             {filteredQuestions.map((q: any, index: number) => {
               const realIndex = kit.questions.findIndex((orig: any) => orig.id === q.id);
@@ -635,7 +624,7 @@ export default function KitDetailPage() {
                         Difficulty {q.difficulty}
                       </span>
 
-                      {/* State provenance badges */}
+                      {}
                       {isPinned && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                           <Pin className="w-3 h-3" /> Pinned
@@ -689,7 +678,7 @@ export default function KitDetailPage() {
                     </div>
                   </div>
 
-                  {/* Inline Editable Question Prompt */}
+                  {}
                   <div className="space-y-1">
                     <label className="text-[11px] font-medium text-gray-400">Interview Question Prompt</label>
                     <textarea
@@ -700,7 +689,7 @@ export default function KitDetailPage() {
                     />
                   </div>
 
-                  {/* Inline Editable Answer Outline */}
+                  {}
                   <div className="space-y-1">
                     <label className="text-[11px] font-medium text-gray-400">Expected Answer Outline & Key Points</label>
                     <textarea
@@ -711,7 +700,7 @@ export default function KitDetailPage() {
                     />
                   </div>
 
-                  {/* Requirement Tags */}
+                  {}
                   <div className="flex items-center gap-2 pt-1 text-xs text-gray-400">
                     <span className="text-[11px]">Covers Requirements:</span>
                     {q.requirement_ids?.map((rid: string) => {
@@ -730,10 +719,10 @@ export default function KitDetailPage() {
         </div>
       )}
 
-      {/* TAB 2: STUDY SCHEDULE (Section 8) */}
+      {}
       {activeTab === 'schedule' && (
         <div className="space-y-6">
-          {/* Schedule Header Card */}
+          {}
           <div className="glass-panel p-6 rounded-2xl space-y-5 border border-white/10">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -769,7 +758,7 @@ export default function KitDetailPage() {
               </div>
             </div>
 
-            {/* Completion Progress & Filter Controls */}
+            {}
             <div className="pt-3 border-t border-white/10 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2">
@@ -782,7 +771,7 @@ export default function KitDetailPage() {
                   </span>
                 </div>
 
-                {/* Filter Pills */}
+                {}
                 <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/10">
                   <button
                     type="button"
@@ -820,7 +809,7 @@ export default function KitDetailPage() {
                 </div>
               </div>
 
-              {/* Progress Bar */}
+              {}
               <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
@@ -835,7 +824,7 @@ export default function KitDetailPage() {
               </div>
             </div>
 
-            {/* Adjust Days Slider & Quick Presets */}
+            {}
             <div className="pt-3 border-t border-white/10 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -847,7 +836,7 @@ export default function KitDetailPage() {
                   </span>
                 </div>
 
-                {/* Quick 1-Click Day Presets */}
+                {}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {[3, 5, 7, 14].map((d) => (
                     <button
@@ -881,7 +870,7 @@ export default function KitDetailPage() {
                 )}
               </div>
 
-              {/* Slider Track (Pure Dark Theme, No Lag while dragging) */}
+              {}
               <div className="flex items-center gap-3">
                 <span className="text-[11px] text-gray-500 font-mono">1d</span>
                 <input
@@ -903,7 +892,7 @@ export default function KitDetailPage() {
             </div>
           </div>
 
-          {/* Active Study Timer Bar (When timer is running) */}
+          {}
           {activeTimerDay !== null && (
             <div className="glass-panel p-4 rounded-2xl border-2 border-accent-teal/50 bg-accent-teal/10 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in shadow-xl">
               <div className="flex items-center gap-3">
@@ -967,7 +956,7 @@ export default function KitDetailPage() {
             </div>
           )}
 
-          {/* Day Cards Grid */}
+          {}
           {(() => {
             const filteredDays = (kit.schedule?.days || []).filter((d: any) => {
               const isDone = completedDays.includes(d.day);
@@ -1019,7 +1008,7 @@ export default function KitDetailPage() {
                       }`}
                     >
                       <div className="space-y-3">
-                        {/* Card Header with Mark Done Toggle */}
+                        {}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span
@@ -1068,7 +1057,7 @@ export default function KitDetailPage() {
                         </h4>
                       </div>
 
-                      {/* Assigned Questions or Review Focus */}
+                      {}
                       <div className="space-y-2 pt-3 border-t border-white/10 flex-1 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between mb-2">
@@ -1132,7 +1121,7 @@ export default function KitDetailPage() {
                         </div>
                       </div>
 
-                      {/* Day Action Buttons */}
+                      {}
                       <div className="pt-3 border-t border-white/10 flex items-center gap-2">
                         <button
                           type="button"
@@ -1163,11 +1152,11 @@ export default function KitDetailPage() {
             );
           })()}
 
-          {/* Interactive Question Detail & Practice Modal */}
+          {}
           {selectedScheduleQuestion && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
               <div className="glass-panel w-full max-w-2xl p-6 sm:p-8 rounded-3xl border border-white/20 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto">
-                {/* Close Button */}
+                {}
                 <button
                   type="button"
                   onClick={() => setSelectedScheduleQuestion(null)}
@@ -1176,7 +1165,7 @@ export default function KitDetailPage() {
                   <X className="w-5 h-5" />
                 </button>
 
-                {/* Modal Header */}
+                {}
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-accent-teal/10 text-accent-teal border border-accent-teal/20">
@@ -1195,7 +1184,7 @@ export default function KitDetailPage() {
                   </h3>
                 </div>
 
-                {/* Requirements Covered */}
+                {}
                 {selectedScheduleQuestion.requirement_ids?.length > 0 && (
                   <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
                     <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">
@@ -1217,7 +1206,7 @@ export default function KitDetailPage() {
                   </div>
                 )}
 
-                {/* Expected Answer Outline & Talking Points */}
+                {}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider">
@@ -1237,7 +1226,7 @@ export default function KitDetailPage() {
                   </div>
                 </div>
 
-                {/* Direct Action Buttons */}
+                {}
                 <div className="pt-2 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
                     type="button"
@@ -1272,7 +1261,7 @@ export default function KitDetailPage() {
         </div>
       )}
 
-      {/* TAB 3: PRACTICE MODE (Section 7) */}
+      {}
       {activeTab === 'practice' && (() => {
         const totalCards = kit.flashcards?.length || 0;
         const ratedCount = Object.keys(practiceConfidence).length;
@@ -1285,7 +1274,7 @@ export default function KitDetailPage() {
 
         return (
           <div className="max-w-2xl mx-auto space-y-6">
-            {/* Top Toolbar */}
+            {}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -1342,7 +1331,7 @@ export default function KitDetailPage() {
 
             {totalCards > 0 ? (
               showPracticeSummary ? (
-                /* ================= SESSION COMPLETION SUMMARY VIEW ================= */
+
                 <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-emerald-500/30 space-y-6 shadow-2xl animate-fade-in">
                   <div className="text-center space-y-3">
                     <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border-2 border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
@@ -1356,7 +1345,7 @@ export default function KitDetailPage() {
                     </p>
                   </div>
 
-                  {/* Mastery Breakdown Stats */}
+                  {}
                   <div className="grid grid-cols-3 gap-3 text-center">
                     <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 space-y-1">
                       <span className="text-2xl font-black text-emerald-400 font-mono">{masteredCount}</span>
@@ -1372,7 +1361,7 @@ export default function KitDetailPage() {
                     </div>
                   </div>
 
-                  {/* Mastery Percentage Progress Bar */}
+                  {}
                   <div className="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-300 font-medium">Role Knowledge Mastery Index</span>
@@ -1386,7 +1375,7 @@ export default function KitDetailPage() {
                     </div>
                   </div>
 
-                  {/* Card-by-Card Performance List */}
+                  {}
                   <div className="space-y-2">
                     <span className="text-[11px] font-semibold text-gray-400 block uppercase tracking-wider">
                       Card Confidence Ratings (Click any card to jump back to it):
@@ -1431,7 +1420,7 @@ export default function KitDetailPage() {
                     </div>
                   </div>
 
-                  {/* Recommended Next Actions */}
+                  {}
                   <div className="pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
@@ -1480,9 +1469,9 @@ export default function KitDetailPage() {
                   </div>
                 </div>
               ) : (
-                /* ================= ACTIVE FLASHCARD VIEW ================= */
+
                 <div className="space-y-6">
-                  {/* All Cards Rated Banner Alert */}
+                  {}
                   {ratedCount === totalCards && (
                     <div
                       onClick={() => setShowPracticeSummary(true)}
@@ -1498,7 +1487,7 @@ export default function KitDetailPage() {
                     </div>
                   )}
 
-                  {/* Progress Counter & Stats */}
+                  {}
                   <div className="flex items-center justify-between text-xs font-mono text-gray-400">
                     <span className="flex items-center gap-1.5">
                       <span className="font-bold text-white">Card {currentCardIndex + 1}</span> of {totalCards}
@@ -1508,7 +1497,7 @@ export default function KitDetailPage() {
                     </span>
                   </div>
 
-                  {/* 3D Flip Flashcard */}
+                  {}
                   <div
                     onClick={() => setIsFlipped(!isFlipped)}
                     className="cursor-pointer min-h-[300px] p-8 glass-panel rounded-3xl border-2 hover:border-primary-500/50 transition-all flex flex-col justify-between shadow-2xl relative select-none"
@@ -1546,7 +1535,7 @@ export default function KitDetailPage() {
                     </div>
                   </div>
 
-                  {/* Confidence Rating Buttons */}
+                  {}
                   <div className="space-y-2">
                     <span className="text-xs text-gray-400 block text-center font-medium">How well did you know this?</span>
                     <div className="grid grid-cols-3 gap-3">
@@ -1586,7 +1575,7 @@ export default function KitDetailPage() {
                     </div>
                   </div>
 
-                  {/* Card Navigation */}
+                  {}
                   <div className="flex items-center justify-between pt-2">
                     <button
                       type="button"
@@ -1637,7 +1626,7 @@ export default function KitDetailPage() {
         );
       })()}
 
-      {/* TAB 4: CREATIVE FEATURE - AI MOCK INTERVIEW SIMULATOR */}
+      {}
       {activeTab === 'mock' && (
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="glass-panel p-6 rounded-2xl space-y-2 border border-accent-teal/30">
@@ -1706,7 +1695,7 @@ export default function KitDetailPage() {
             </button>
           </div>
 
-          {/* Feedback Section */}
+          {}
           {mockFeedback && (
             <div className="glass-panel p-6 rounded-2xl border border-emerald-500/30 space-y-5 animate-fade-in">
               <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -1752,7 +1741,7 @@ export default function KitDetailPage() {
         </div>
       )}
 
-      {/* TAB 5: COMPANY BRIEF & ROLE */}
+      {}
       {activeTab === 'brief' && (
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="glass-panel p-6 rounded-2xl space-y-4">
@@ -1839,7 +1828,7 @@ export default function KitDetailPage() {
         </div>
       )}
 
-      {/* TAB 6: APPENDIX A RAW JSON */}
+      {}
       {activeTab === 'json' && (
         <div className="max-w-4xl mx-auto space-y-4">
           <div className="flex items-center justify-between">
@@ -1862,3 +1851,4 @@ export default function KitDetailPage() {
     </div>
   );
 }
+

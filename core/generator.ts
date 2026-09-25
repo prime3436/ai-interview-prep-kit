@@ -15,9 +15,6 @@ export interface GenerationContext {
   sources: string[];
 }
 
-/**
- * Generate the Company Brief based on crawled data
- */
 export async function generateCompanyBrief(
   companyName: string,
   crawledWhatTheyDo: string,
@@ -63,9 +60,6 @@ ${crawledWhatTheyDo.slice(0, 4000)}
   }
 }
 
-/**
- * Rule-based fallback question generator for a requirement
- */
 function createFallbackQuestion(
   req: Requirement,
   category: QuestionCategory,
@@ -89,7 +83,7 @@ function createFallbackQuestion(
     answer_outline = `1. Functional and non-functional requirements.\n2. High-level architecture and API contracts.\n3. Data persistence, partitioning, and caching.\n4. Failure scenarios, rate limits, and monitoring.`;
     difficulty = 3;
   } else {
-    // company-fit
+
     const company = context?.companyName || 'our company';
     prompt = `How does your background in "${req.text}" align with ${company}'s mission and engineering culture?`;
     answer_outline = `1. Understanding of company problem domain.\n2. Demonstration of engineering values (ownership, velocity, pragmatism).\n3. Genuine motivation for this role.`;
@@ -108,9 +102,6 @@ function createFallbackQuestion(
   };
 }
 
-/**
- * Generate questions for a specific category and set of requirements
- */
 export async function generateCategoryQuestions(
   category: QuestionCategory,
   requirements: Requirement[],
@@ -195,9 +186,6 @@ Return strictly a JSON array of objects:
   }
 }
 
-/**
- * Generate Flashcards covering the requirements
- */
 export async function generateFlashcards(
   requirements: Requirement[],
   context: GenerationContext,
@@ -264,3 +252,4 @@ Return strictly a JSON array:
     return fallback();
   }
 }
+

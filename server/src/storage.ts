@@ -22,11 +22,6 @@ export interface PracticeProgressRecord {
 
 const DATA_DIR = path.resolve(process.cwd(), 'server', 'data');
 
-/**
- * Robust hybrid storage:
- * Checks if MongoDB is reachable. If reachable, stores in Mongo.
- * If not reachable or offline, seamlessly persists in local JSON store under server/data/
- */
 export class StorageService {
   private isMongoConnected = false;
 
@@ -53,7 +48,6 @@ export class StorageService {
     }
   }
 
-  // --- Users ---
   private getUsersFilePath(): string {
     return path.join(DATA_DIR, 'users.json');
   }
@@ -84,7 +78,6 @@ export class StorageService {
     fs.writeFileSync(this.getUsersFilePath(), JSON.stringify(users, null, 2), 'utf-8');
   }
 
-  // --- Kits ---
   private getKitsFilePath(): string {
     return path.join(DATA_DIR, 'kits.json');
   }
@@ -141,7 +134,6 @@ export class StorageService {
     return false;
   }
 
-  // --- Practice Stats ---
   private getPracticeFilePath(): string {
     return path.join(DATA_DIR, 'practice.json');
   }
@@ -179,3 +171,4 @@ export class StorageService {
 }
 
 export const storage = new StorageService();
+

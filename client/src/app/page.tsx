@@ -27,7 +27,6 @@ export default function Dashboard() {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
 
-  // Form states
   const [jd, setJd] = useState('');
   const [companyUrl, setCompanyUrl] = useState('');
   const [days, setDays] = useState(5);
@@ -35,11 +34,9 @@ export default function Dashboard() {
   const [progressStep, setProgressStep] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Saved kits state
   const [kits, setKits] = useState<any[]>([]);
   const [isLoadingKits, setIsLoadingKits] = useState(true);
 
-  // Batch modal state
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [batchJson, setBatchJson] = useState('');
   const [batchProcessing, setBatchProcessing] = useState(false);
@@ -71,7 +68,6 @@ export default function Dashboard() {
     setErrorMessage(null);
     setProgressStep(1);
 
-    // Simulated progress indicators for user feedback
     const timer1 = setTimeout(() => setProgressStep(2), 700);
     const timer2 = setTimeout(() => setProgressStep(3), 1500);
     const timer3 = setTimeout(() => setProgressStep(4), 2200);
@@ -123,7 +119,6 @@ export default function Dashboard() {
     }
   }
 
-  // Pre-fill quick demo templates
   function loadDemo(type: 'stripe' | 'vercel') {
     if (type === 'stripe') {
       setCompanyUrl('https://stripe.com');
@@ -161,7 +156,7 @@ Requirements:
 
   return (
     <div className="space-y-12">
-      {/* Hero Header */}
+      {}
       <section className="text-center max-w-3xl mx-auto space-y-4 pt-4">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary-500/10 text-primary-400 border border-primary-500/20">
           <Sparkles className="w-4 h-4 text-accent-teal" />
@@ -178,7 +173,7 @@ Requirements:
           coverage with a second-pass loop, and deterministically allocates your schedule.
         </p>
 
-        {/* Quick Demo Pre-fill buttons */}
+        {}
         <div className="flex items-center justify-center gap-2 pt-2 text-xs text-gray-400">
           <span>Quick load sample:</span>
           <button
@@ -196,7 +191,7 @@ Requirements:
         </div>
       </section>
 
-      {/* Main Generator Card */}
+      {}
       <section id="create-kit-form" className="max-w-4xl mx-auto glass-panel p-6 sm:p-8 rounded-2xl shadow-2xl relative overflow-hidden scroll-mt-24">
         <form onSubmit={handleGenerate} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -264,7 +259,7 @@ Requirements:
             </div>
           )}
 
-          {/* Generation Progress Steps (Section 12 requirement: clear loading states) */}
+          {}
           {isGenerating && (
             <div className="p-5 rounded-xl bg-primary-950/40 border border-primary-500/20 space-y-3">
               <div className="flex items-center justify-between text-sm font-medium text-gray-200">
@@ -331,7 +326,7 @@ Requirements:
         </form>
       </section>
 
-      {/* Saved Kits Section */}
+      {}
       <section id="my-kits-section" className="space-y-6 scroll-mt-24">
         <div className="flex items-center justify-between">
           <div>
@@ -417,7 +412,7 @@ Requirements:
         )}
       </section>
 
-      {/* Batch Upload Modal (Section 2 & 9) */}
+      {}
       {showBatchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="glass-panel w-full max-w-2xl p-6 rounded-2xl space-y-4 border border-white/20">
@@ -461,3 +456,4 @@ Requirements:
     </div>
   );
 }
+

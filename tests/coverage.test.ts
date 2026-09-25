@@ -12,7 +12,7 @@ describe('Deterministic Coverage Checker & Second Pass (Section 4)', () => {
   ];
 
   it('correctly identifies uncovered requirements deterministically', () => {
-    // Only r1 and r3 have questions
+
     const questions: Question[] = [
       {
         id: 'q1',
@@ -41,7 +41,7 @@ describe('Deterministic Coverage Checker & Second Pass (Section 4)', () => {
   });
 
   it('executes second-pass to close must-have requirement gaps', async () => {
-    // Initial draft misses r2 and r4
+
     const initialQuestions: Question[] = [
       {
         id: 'q1',
@@ -76,10 +76,8 @@ describe('Deterministic Coverage Checker & Second Pass (Section 4)', () => {
       2
     );
 
-    // Pass count must be recorded as 2 because a second pass was needed
     expect(coverage.passes).toBe(2);
 
-    // Verify all must-have requirements now have corresponding questions
     const finalCoveredReqIds = new Set<string>();
     finalQuestions.forEach(q => q.requirement_ids.forEach(rid => finalCoveredReqIds.add(rid)));
 
@@ -109,3 +107,4 @@ describe('Deterministic Coverage Checker & Second Pass (Section 4)', () => {
     expect(coverage.uncovered_requirement_ids).toHaveLength(0);
   });
 });
+

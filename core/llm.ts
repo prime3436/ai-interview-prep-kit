@@ -22,9 +22,6 @@ export class LLMClient {
     }
   }
 
-  /**
-   * Generates structured JSON from the model with retry on rate limits (429)
-   */
   async generateJSON<T>(prompt: string, fallbackGenerator?: () => T, options?: LLMOptions): Promise<T> {
     if (!this.genAI || !this.apiKey) {
       if (fallbackGenerator) {
@@ -62,11 +59,10 @@ export class LLMClient {
         if (isRateLimit && attempt < maxRetries) {
           console.warn(`[LLMClient] Rate limited on attempt ${attempt}. Waiting ${delay}ms before retrying...`);
           await new Promise(r => setTimeout(r, delay));
-          delay *= 2; // exponential backoff
+          delay *= 2;
           continue;
         }
 
-        // If after retries it still fails and fallback is available, use fallback
         if (fallbackGenerator) {
           console.warn(`[LLMClient] LLM error: ${err.message}. Invoking robust fallback generator.`);
           return fallbackGenerator();
@@ -82,9 +78,6 @@ export class LLMClient {
     throw new Error(`LLM generation failed after ${maxRetries} retries`);
   }
 
-  /**
-   * Cleans model output (e.g. markdown backticks) and parses JSON safely
-   */
   private cleanAndParseJSON<T>(raw: string): T {
     let clean = raw.trim();
     if (clean.startsWith('```json')) {
@@ -96,7 +89,7 @@ export class LLMClient {
     try {
       return JSON.parse(clean) as T;
     } catch (parseErr: any) {
-      // Clean possible trailing commas before closing braces/brackets
+
       const fixed = clean
         .replace(/,\s*([}\]])/g, '$1')
         .replace(/[\u201C\u201D]/g, '"');
@@ -106,3 +99,4 @@ export class LLMClient {
 }
 
 export const defaultLLM = new LLMClient();
+

@@ -9,10 +9,6 @@ export interface CoverageAnalysis {
   uncoveredIds: string[];
 }
 
-/**
- * Deterministic Coverage Check:
- * Pure code logic (NOT LLM) comparing requirements against question requirement_ids.
- */
 export function checkRequirementCoverage(
   requirements: Requirement[],
   questions: Question[]
@@ -52,9 +48,6 @@ export function checkRequirementCoverage(
   };
 }
 
-/**
- * Executes targeted generation for uncovered requirements (Pass 2)
- */
 async function generateGapQuestions(
   gaps: Requirement[],
   context: GenerationContext,
@@ -135,11 +128,6 @@ OUTPUT STRICT JSON ARRAY:
   }
 }
 
-/**
- * Second-Pass Coverage Loop (Section 4):
- * Evaluates gaps deterministically. If must-have requirements are uncovered,
- * loops into Pass 2 to generate missing questions until all must-haves are covered.
- */
 export async function runCoveragePasses(
   requirements: Requirement[],
   initialQuestions: Question[],
@@ -150,22 +138,17 @@ export async function runCoveragePasses(
   let questions = [...initialQuestions];
   let passes = 1;
 
-  // Pass 1 deterministic check
   let analysis = checkRequirementCoverage(requirements, questions);
 
-  // If there are uncovered requirements and we have passes remaining, run Pass 2
   if (analysis.allUncovered.length > 0 && passes < maxPasses) {
     passes++;
     const nextStartId = questions.length + 1;
     const gapQuestions = await generateGapQuestions(analysis.allUncovered, context, nextStartId, llm);
     questions = [...questions, ...gapQuestions];
 
-    // Re-check coverage
     analysis = checkRequirementCoverage(requirements, questions);
   }
 
-  // Safety guarantee: If any MUST requirement is STILL uncovered, synthesize deterministic question
-  // to guarantee that no must-have requirement ships uncovered!
   if (analysis.uncoveredMust.length > 0) {
     for (const mustReq of analysis.uncoveredMust) {
       const fallbackQ: Question = {
@@ -180,7 +163,7 @@ export async function runCoveragePasses(
       };
       questions.push(fallbackQ);
     }
-    // Re-evaluate coverage after fallback resolution
+
     analysis = checkRequirementCoverage(requirements, questions);
   }
 
@@ -192,3 +175,4 @@ export async function runCoveragePasses(
     },
   };
 }
+

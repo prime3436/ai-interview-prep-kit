@@ -1,9 +1,6 @@
 import { z } from 'zod';
 import { Kit, BatchOutputFile, BatchCaseInput } from './types.js';
 
-/**
- * Zod schema strictly validating Appendix A Kit structure
- */
 export const RequirementSchema = z.object({
   id: z.string().min(1),
   text: z.string().min(1),
@@ -85,15 +82,6 @@ export const KitSchema = z.object({
   updatedAt: z.string().optional(),
 });
 
-/**
- * Validates a generated Kit object against Appendix A requirements,
- * including referential integrity:
- * 1. Schema conformity
- * 2. Every question_ids in schedule refers to an existing question
- * 3. Schedule days count equals days_available
- * 4. Question difficulties are integers 1..3
- * 5. Minutes are positive integers
- */
 export function validateKit(kit: unknown): { valid: boolean; errors: string[]; kit?: Kit } {
   const result = KitSchema.safeParse(kit);
   if (!result.success) {
@@ -106,11 +94,9 @@ export function validateKit(kit: unknown): { valid: boolean; errors: string[]; k
   const parsed = result.data as Kit;
   const errors: string[] = [];
 
-  // Referential integrity checks
   const questionIdSet = new Set(parsed.questions.map(q => q.id));
   const requirementIdSet = new Set(parsed.role.requirements.map(r => r.id));
 
-  // Check schedule questions exist
   for (const day of parsed.schedule.days) {
     for (const qid of day.question_ids) {
       if (!questionIdSet.has(qid)) {
@@ -119,14 +105,12 @@ export function validateKit(kit: unknown): { valid: boolean; errors: string[]; k
     }
   }
 
-  // Check schedule day count equals days_available
   if (parsed.schedule.days.length !== parsed.schedule.days_available) {
     errors.push(
       `Schedule days count (${parsed.schedule.days.length}) does not match days_available (${parsed.schedule.days_available})`
     );
   }
 
-  // Check question requirement references
   for (const q of parsed.questions) {
     for (const rid of q.requirement_ids) {
       if (!requirementIdSet.has(rid)) {
@@ -135,7 +119,6 @@ export function validateKit(kit: unknown): { valid: boolean; errors: string[]; k
     }
   }
 
-  // Check flashcard requirement references
   for (const f of parsed.flashcards) {
     for (const rid of f.requirement_ids) {
       if (!requirementIdSet.has(rid)) {
@@ -151,9 +134,6 @@ export function validateKit(kit: unknown): { valid: boolean; errors: string[]; k
   return { valid: true, errors: [], kit: parsed };
 }
 
-/**
- * Zod schema for Appendix B Batch Input
- */
 export const BatchCaseInputSchema = z.object({
   id: z.string().min(1),
   jd: z.string().min(1),
@@ -174,9 +154,6 @@ export function validateBatchInput(input: unknown): { valid: boolean; errors: st
   return { valid: true, errors: [], cases: result.data };
 }
 
-/**
- * Format kit cleanly for Appendix A export (strips internal _ prefixed fields if strict export requested)
- */
 export function cleanKitForExport(kit: Kit): Kit {
   return {
     source: { ...kit.source },
@@ -221,3 +198,4 @@ export function cleanKitForExport(kit: Kit): Kit {
     },
   };
 }
+

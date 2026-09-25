@@ -15,7 +15,6 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
-/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -57,7 +56,6 @@ body {
   transform: rotateY(180deg);
 }
 
-/* Custom Range Slider (Dark Theme - No white Windows borders) */
 input[type='range'].custom-range-slider {
   -webkit-appearance: none;
   appearance: none;

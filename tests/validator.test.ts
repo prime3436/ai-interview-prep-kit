@@ -81,7 +81,7 @@ describe('Appendix A & B Structure Validation (Section 5 & 9)', () => {
 
   it('detects referential integrity violation in schedule question_ids', () => {
     const brokenKit = JSON.parse(JSON.stringify(validKit));
-    brokenKit.schedule.days[0].question_ids = ['q999']; // q999 does not exist
+    brokenKit.schedule.days[0].question_ids = ['q999'];
     const result = validateKit(brokenKit);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('unknown question_id "q999"'))).toBe(true);
@@ -89,7 +89,7 @@ describe('Appendix A & B Structure Validation (Section 5 & 9)', () => {
 
   it('detects mismatch between schedule days count and days_available', () => {
     const brokenKit = JSON.parse(JSON.stringify(validKit));
-    brokenKit.schedule.days_available = 5; // but days array has only 2 items
+    brokenKit.schedule.days_available = 5;
     const result = validateKit(brokenKit);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('does not match days_available'))).toBe(true);
@@ -110,3 +110,4 @@ describe('Appendix A & B Structure Validation (Section 5 & 9)', () => {
     expect(result.cases).toHaveLength(1);
   });
 });
+

@@ -50,7 +50,6 @@ export default function AuthModal() {
       return;
     }
 
-    // Strict Password Validation for Registration
     if (authMode === 'register') {
       if (password.length < 8) {
         setError('Password must be at least 8 characters long.');
@@ -100,7 +99,7 @@ export default function AuthModal() {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Tab Switcher */}
+        {}
         {authMode !== 'verify' && (
           <div className="flex border-b border-white/10 pb-2">
             <button
@@ -293,3 +292,4 @@ export default function AuthModal() {
     </div>
   );
 }
+

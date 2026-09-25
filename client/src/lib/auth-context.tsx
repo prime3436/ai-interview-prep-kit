@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('trao_auth_user', JSON.stringify(res.user));
       setShowAuthModal(false);
     } catch (err: any) {
-      // Check if user needs verification
+
       if (err.message && err.message.includes('verify your email')) {
         setPendingVerificationEmail(email);
         setAuthMode('verify');
@@ -145,3 +145,4 @@ export function useAuth() {
   }
   return context;
 }
+

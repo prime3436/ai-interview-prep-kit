@@ -20,7 +20,6 @@ export default function Header() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
@@ -37,7 +36,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 backdrop-blur-md bg-background/80 border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand Logo */}
+        {}
         <Link href="/" className="flex items-center gap-3 group">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 via-accent-teal to-accent-cyan flex items-center justify-center shadow-lg shadow-primary-500/20 group-hover:scale-105 transition-transform">
             <Sparkles className="w-5 h-5 text-white" />
@@ -52,9 +51,9 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* Navigation & User Actions */}
+        {}
         <nav className="flex items-center gap-2 sm:gap-3">
-          {/* My Kits Navigation */}
+          {}
           <Link
             href="/#my-kits-section"
             className="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5"
@@ -63,7 +62,7 @@ export default function Header() {
             <span>My Kits</span>
           </Link>
 
-          {/* Quick Create Kit Button */}
+          {}
           <Link
             href="/#create-kit-form"
             className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-primary-600 to-accent-teal hover:from-primary-500 hover:to-accent-cyan shadow-sm shadow-primary-500/25 transition-all flex items-center gap-1.5 group"
@@ -72,7 +71,7 @@ export default function Header() {
             <span>New Kit</span>
           </Link>
 
-          {/* Authentication State & Profile Dropdown */}
+          {}
           <div className="pl-2 border-l border-white/10 flex items-center gap-2">
             {user ? (
               <div className="relative" ref={profileRef}>
@@ -94,10 +93,10 @@ export default function Header() {
                   />
                 </button>
 
-                {/* Dropdown Menu */}
+                {}
                 {showProfileMenu && (
                   <div className="absolute right-0 mt-2 w-64 rounded-xl glass-panel border border-white/15 shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                    {/* User Info Header */}
+                    {}
                     <div className="px-3 py-2.5 border-b border-white/10">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-accent-teal flex items-center justify-center text-sm font-bold text-white shadow-sm">
@@ -114,7 +113,7 @@ export default function Header() {
                       </div>
                     </div>
 
-                    {/* Quick Menu Items */}
+                    {}
                     <div className="py-1.5 space-y-0.5">
                       <Link
                         href="/#my-kits-section"
@@ -134,7 +133,7 @@ export default function Header() {
                       </Link>
                     </div>
 
-                    {/* Sign Out Action */}
+                    {}
                     <div className="pt-1.5 border-t border-white/10">
                       <button
                         onClick={() => {
@@ -180,3 +179,4 @@ export default function Header() {
     </header>
   );
 }
+

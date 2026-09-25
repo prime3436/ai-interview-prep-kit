@@ -8,7 +8,6 @@ import { validateBatchInput, cleanKitForExport, validateKit } from './validator.
 
 dotenv.config();
 
-// Ensure local URLs are permitted during batch evaluations (e.g. against local test harnesses)
 process.env.ALLOW_LOCAL_URLS = 'true';
 
 async function main() {
@@ -25,7 +24,6 @@ async function main() {
   const options = program.opts();
   const args = program.args;
 
-  // Resolve input and output from flags or positional arguments
   const inputArg = options.input || args[0];
   const outputArg = options.output || args[1];
 
@@ -76,18 +74,17 @@ async function main() {
     const startTime = Date.now();
 
     try {
-      // Run identical core pipeline as the web application
+
       const kit = await runPrepKitPipeline({
         jd: testCase.jd,
         companyUrl: testCase.company_url,
         days: testCase.days,
-        allowLocal: true, // Crucial: support local test addresses like http://localhost:8099/
+        allowLocal: true,
         onProgress: p => {
           console.log(`  [Progress ${p.progressPercent}%] ${p.message}`);
         },
       });
 
-      // Validate Appendix A conformity
       const kitValidation = validateKit(kit);
       if (!kitValidation.valid) {
         console.warn(`  [Warning] Kit schema notice: ${kitValidation.errors.join(', ')}`);
@@ -106,7 +103,6 @@ async function main() {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       console.error(`  [FAILED] Case "${testCase.id}" failed after ${elapsed}s: ${caseErr.message}`);
 
-      // Gracefully record failure rather than aborting run (Section 9 Requirement)
       let errorCode = 'PIPELINE_ERROR';
       if (caseErr.message.includes('unreachable') || caseErr.message.includes('fetch')) {
         errorCode = 'COMPANY_UNREACHABLE';
@@ -126,14 +122,12 @@ async function main() {
     }
   }
 
-  // Write exact Appendix B Output Shape
   const outputData: BatchOutputFile = {
     version: '1.0',
     generated_at: new Date().toISOString(),
     kits: results,
   };
 
-  // Ensure output directory exists
   const outDir = path.dirname(outputPath);
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
@@ -154,3 +148,4 @@ main().catch(err => {
   console.error('[Evaluate] Fatal error in evaluation runner:', err);
   process.exit(1);
 });
+

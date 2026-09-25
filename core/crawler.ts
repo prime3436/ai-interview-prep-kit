@@ -17,11 +17,6 @@ export interface CrawlResult {
   errors: string[];
 }
 
-/**
- * SSRF validation:
- * Disallows private/loopback/cloud metadata IP ranges in production unless ALLOW_LOCAL_URLS is explicitly set.
- * In development or batch evaluation (e.g. against http://localhost:8099/acme/), local URLs are allowed.
- */
 export function isSafeUrl(rawUrl: string, allowLocal = false): { safe: boolean; reason?: string } {
   try {
     const parsed = new URL(rawUrl);
@@ -31,12 +26,10 @@ export function isSafeUrl(rawUrl: string, allowLocal = false): { safe: boolean; 
 
     const host = parsed.hostname.toLowerCase();
 
-    // Check if local URLs are allowed (for test harness or localhost mocking)
     if (allowLocal || process.env.ALLOW_LOCAL_URLS === 'true' || process.env.NODE_ENV !== 'production') {
       return { safe: true };
     }
 
-    // SSRF Checks in Production
     const isLoopback = host === 'localhost' || host === '127.0.0.1' || host === '::1';
     const isCloudMetadata = host === '169.254.169.254';
     const isPrivate =
@@ -54,38 +47,29 @@ export function isSafeUrl(rawUrl: string, allowLocal = false): { safe: boolean; 
   }
 }
 
-/**
- * Heuristic Link Ranking:
- * Evaluates candidate URLs found on the homepage to prioritize hiring, careers,
- * culture, engineering blog, and company about pages.
- */
 export function rankLink(urlStr: string, anchorText: string): number {
   const lowerUrl = urlStr.toLowerCase();
   const lowerText = anchorText.toLowerCase();
   let score = 0;
 
-  // High priority: Hiring, Careers, Interviews
   const hiringKeywords = ['careers', 'jobs', 'work-with-us', 'join-us', 'hiring', 'positions', 'interview', 'openings'];
   for (const kw of hiringKeywords) {
     if (lowerUrl.includes(kw)) score += 10;
     if (lowerText.includes(kw)) score += 8;
   }
 
-  // Engineering & handbook: Highly relevant for tech roles
   const techKeywords = ['handbook', 'engineering', 'tech', 'culture', 'values', 'life-at'];
   for (const kw of techKeywords) {
     if (lowerUrl.includes(kw)) score += 7;
     if (lowerText.includes(kw)) score += 5;
   }
 
-  // Company background
   const aboutKeywords = ['about', 'company', 'mission', 'team', 'who-we-are'];
   for (const kw of aboutKeywords) {
     if (lowerUrl.includes(kw)) score += 4;
     if (lowerText.includes(kw)) score += 3;
   }
 
-  // Penalize irrelevant / noise links
   const penaltyKeywords = ['login', 'signin', 'signup', 'terms', 'privacy', 'cookie', 'cart', 'checkout', 'pricing', 'status', 'help', 'support'];
   for (const kw of penaltyKeywords) {
     if (lowerUrl.includes(kw)) score -= 15;
@@ -95,15 +79,11 @@ export function rankLink(urlStr: string, anchorText: string): number {
   return score;
 }
 
-/**
- * Clean HTML and extract readable text
- */
 export function extractCleanText(html: string): { title: string; text: string; links: { href: string; text: string }[] } {
   const $ = cheerio.load(html);
 
   const title = $('title').first().text().trim() || $('h1').first().text().trim() || 'Untitled Page';
 
-  // Collect links before stripping tags
   const links: { href: string; text: string }[] = [];
   $('a[href]').each((_, el) => {
     const href = $(el).attr('href')?.trim();
@@ -113,23 +93,18 @@ export function extractCleanText(html: string): { title: string; text: string; l
     }
   });
 
-  // Strip non-content and layout tags
   $('script, style, noscript, svg, iframe, nav, footer, header, form').remove();
 
-  // Prefer main or article if present, otherwise body
   const container = $('main').length > 0 ? $('main') : $('article').length > 0 ? $('article') : $('body');
   const text = container
     .text()
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 10000); // Enforce 10k chars limit for token efficiency
+    .slice(0, 10000);
 
   return { title, text, links };
 }
 
-/**
- * Fetch a single URL safely with timeout and retry logic
- */
 export async function fetchWithRetry(url: string, maxRetries = 2, timeoutMs = 8000): Promise<string> {
   let lastError: Error | null = null;
 
@@ -152,13 +127,12 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeoutMs = 80
         throw new Error(`HTTP ${response.status} ${response.statusText}`);
       }
 
-      // Max size limit: 1.5MB
       const text = await response.text();
       return text;
     } catch (err: any) {
       lastError = err;
       if (attempt < maxRetries) {
-        // Exponential backoff: 500ms, 1000ms
+
         await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt)));
       }
     }
@@ -167,9 +141,6 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeoutMs = 80
   throw lastError || new Error(`Failed to fetch ${url} after ${maxRetries} retries`);
 }
 
-/**
- * Check robots.txt for disallowed paths
- */
 export async function isAllowedByRobots(baseUrl: string, path: string): Promise<boolean> {
   try {
     const robotsUrl = new URL('/robots.txt', baseUrl).href;
@@ -192,14 +163,11 @@ export async function isAllowedByRobots(baseUrl: string, path: string): Promise<
     }
     return true;
   } catch {
-    // If robots.txt doesn't exist or is unreachable, default to permitted
+
     return true;
   }
 }
 
-/**
- * Intelligent Crawler: Crawls company homepage and prioritized discovered pages
- */
 export async function crawlCompanySite(
   companyUrl: string,
   allowLocal = true
@@ -208,7 +176,6 @@ export async function crawlCompanySite(
   const pages: CrawledPage[] = [];
   const pages_used: string[] = [];
 
-  // SSRF check
   const safety = isSafeUrl(companyUrl, allowLocal);
   if (!safety.safe) {
     errors.push(`URL rejected: ${safety.reason}`);
@@ -222,7 +189,6 @@ export async function crawlCompanySite(
     };
   }
 
-  // 1. Fetch homepage
   let homepageHtml = '';
   try {
     homepageHtml = await fetchWithRetry(companyUrl, 2, 8000);
@@ -247,7 +213,6 @@ export async function crawlCompanySite(
     isHiringPage: false,
   });
 
-  // 2. Discover & rank internal links
   const baseParsed = new URL(companyUrl);
   const scoredCandidates: { url: string; score: number }[] = [];
   const seenUrls = new Set<string>([companyUrl]);
@@ -255,7 +220,7 @@ export async function crawlCompanySite(
   for (const link of links) {
     try {
       const resolved = new URL(link.href, companyUrl);
-      // Keep within same domain / subdomain
+
       if (resolved.hostname === baseParsed.hostname || resolved.hostname.endsWith('.' + baseParsed.hostname)) {
         const fullHref = resolved.href;
         if (!seenUrls.has(fullHref)) {
@@ -267,11 +232,10 @@ export async function crawlCompanySite(
         }
       }
     } catch {
-      // ignore malformed URLs
+
     }
   }
 
-  // Sort by score descending and take up to top 2 links
   scoredCandidates.sort((a, b) => b.score - a.score);
   const topCandidates = scoredCandidates.slice(0, 2);
 
@@ -293,20 +257,18 @@ export async function crawlCompanySite(
       });
       pages_used.push(candidate.url);
     } catch (err: any) {
-      // Graceful degradation: failing to crawl an optional subpage must not fail the run!
+
       errors.push(`Subpage skipped (${candidate.url}): ${err.message}`);
     }
   }
 
-  // Synthesize extracted raw knowledge
   const what_they_do_text = homeText.slice(0, 3000);
   const hiringPage = pages.find(p => p.isHiringPage);
   const hiring_process_text = hiringPage ? hiringPage.content.slice(0, 3000) : '';
 
-  // 3. Search public discussion / interview patterns (heuristics & search synthesis)
   let public_discussion_text = '';
   try {
-    // Look for glassdoor/reddit interview mentions or company public interview structure
+
     public_discussion_text = hiring_process_text
       ? `Public hiring process identified on company pages: ${hiring_process_text.slice(0, 1500)}`
       : `Standard tech interview rounds typically observed for companies in this tier (Technical Screen, System Architecture / Live Coding, Behavioural & Values alignment).`;
@@ -323,3 +285,4 @@ export async function crawlCompanySite(
     errors,
   };
 }
+

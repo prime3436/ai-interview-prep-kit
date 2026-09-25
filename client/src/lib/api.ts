@@ -91,7 +91,6 @@ function generateFallbackKit(jd: string, company_url: string, days: number): any
   const companyCapitalized = companyName.charAt(0).toUpperCase() + companyName.slice(1);
   const now = new Date().toISOString();
 
-  // Extract lines as requirements
   const lines = jd.split('\n').map(l => l.trim()).filter(l => l.length > 10 && !l.toLowerCase().includes('responsibilit') && !l.toLowerCase().includes('requirem'));
   const requirements = (lines.length > 0 ? lines.slice(0, 5) : [
     '5+ years experience designing distributed backend systems',
@@ -147,7 +146,6 @@ function generateFallbackKit(jd: string, company_url: string, days: number): any
     },
   ];
 
-  // Distribute questions into days
   const daysCount = Math.max(1, days || 5);
   const dayCards = buildScheduleDays(questions, daysCount);
 
@@ -224,7 +222,6 @@ export async function fetchApi<T = any>(endpoint: string, options: RequestInit =
   } catch (err: any) {
     console.warn(`[API] Remote call failed for ${endpoint} (${err.message}). Using resilient client persistence.`);
 
-    // === RESILIENT CLIENT-SIDE FALLBACK ===
     if (endpoint === '/auth/login') {
       const body = options.body ? JSON.parse(options.body as string) : {};
       const user = { id: 'u_demo', email: body.email || 'demo@interviewprep.ai', name: 'Candidate', isVerified: true };
@@ -267,7 +264,7 @@ export async function fetchApi<T = any>(endpoint: string, options: RequestInit =
       const kits = getLocalKits();
       const found = kits.find(k => k._id === id);
       if (found) return { kit: found } as any;
-      // If not found in localStorage, create fallback kit with matching id
+
       const fb = generateFallbackKit('Senior Engineer\n- 5+ years experience\n- TypeScript and Node.js', 'https://stripe.com', 5);
       fb._id = id;
       saveLocalKits([fb, ...kits]);
@@ -345,7 +342,7 @@ export async function fetchApi<T = any>(endpoint: string, options: RequestInit =
 }
 
 export const api = {
-  // Auth
+
   register: (data: { email: string; password: string; name?: string }) =>
     fetchApi<{ message: string; requiresVerification?: boolean; email?: string; previewCode?: string; token?: string; user?: any }>(
       '/auth/register',
@@ -365,7 +362,6 @@ export const api = {
     fetchApi<{ token: string; user: any }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => fetchApi('/auth/me'),
 
-  // Kits
   getKits: () => fetchApi<{ kits: any[] }>('/kits'),
   getKit: (id: string) => fetchApi<{ kit: any }>(`/kits/${id}`),
   generateKit: (data: { jd: string; company_url: string; days: number }) =>
@@ -379,7 +375,6 @@ export const api = {
     }),
   deleteKit: (id: string) => fetchApi(`/kits/${id}`, { method: 'DELETE' }),
 
-  // Practice Mode
   getPracticeProgress: (kitId: string) => fetchApi(`/practice/${kitId}`),
   recordCardConfidence: (kitId: string, cardId: string, confidence: number) =>
     fetchApi(`/practice/${kitId}/record`, {
@@ -387,7 +382,6 @@ export const api = {
       body: JSON.stringify({ cardId, confidence }),
     }),
 
-  // Mock Interview
   evaluateMockAnswer: (data: { questionPrompt: string; answerOutline: string; candidateAnswer: string }) =>
     fetchApi<{ score: number; strengths: string[]; missingElements: string[]; feedback: string }>(
       '/mock-interview/evaluate',
@@ -397,10 +391,10 @@ export const api = {
       }
     ),
 
-  // Batch
   uploadBatch: (cases: any[]) =>
     fetchApi('/batch/upload', {
       method: 'POST',
       body: JSON.stringify(cases),
     }),
 };
+

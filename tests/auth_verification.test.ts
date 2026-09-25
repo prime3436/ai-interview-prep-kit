@@ -19,13 +19,11 @@ describe('Auth & Email Verification Flow', () => {
 
     await storage.saveUser(newUser);
 
-    // Retrieve user and check unverified status
     const retrieved = await storage.findUserByEmail(testEmail);
     expect(retrieved).toBeDefined();
     expect(retrieved?.isVerified).toBe(false);
     expect(retrieved?.verificationCode).toBe(code);
 
-    // Simulate verification
     retrieved!.isVerified = true;
     delete retrieved!.verificationCode;
     await storage.saveUser(retrieved!);
@@ -35,3 +33,4 @@ describe('Auth & Email Verification Flow', () => {
     expect(verifiedUser?.verificationCode).toBeUndefined();
   });
 });
+
